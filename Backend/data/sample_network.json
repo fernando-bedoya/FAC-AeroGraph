@@ -1,0 +1,156 @@
+{
+  "nodos": [
+    {
+      "id": "BOG",
+      "nombre": "El Dorado",
+      "ciudad": "Bogota",
+      "pais": "Colombia",
+      "zonaHoraria": "UTC-5",
+      "esHub": true,
+      "costoAlojamiento": 48,
+      "costoAlimentacion": 14,
+      "actividades": [
+        {"nombre": "Tour centro historico", "tipo": "opcional", "duracionMin": 180, "costoUSD": 22}
+      ],
+      "trabajos": [
+        {"nombre": "Asistente de rampa", "tarifaHora": 11, "maxHoras": 6}
+      ]
+    },
+    {
+      "id": "MDE",
+      "nombre": "Jose Maria Cordova",
+      "ciudad": "Medellin",
+      "pais": "Colombia",
+      "zonaHoraria": "UTC-5",
+      "esHub": false,
+      "costoAlojamiento": 40,
+      "costoAlimentacion": 12,
+      "actividades": [
+        {"nombre": "City tour", "tipo": "opcional", "duracionMin": 150, "costoUSD": 18}
+      ],
+      "trabajos": [
+        {"nombre": "Cargador de equipaje", "tarifaHora": 9, "maxHoras": 5}
+      ]
+    },
+    {
+      "id": "CLO",
+      "nombre": "Alfonso Bonilla Aragon",
+      "ciudad": "Cali",
+      "pais": "Colombia",
+      "zonaHoraria": "UTC-5",
+      "esHub": false,
+      "costoAlojamiento": 38,
+      "costoAlimentacion": 11,
+      "actividades": [
+        {"nombre": "Ruta cultural", "tipo": "opcional", "duracionMin": 120, "costoUSD": 16}
+      ],
+      "trabajos": [
+        {"nombre": "Guia terminal", "tarifaHora": 8, "maxHoras": 4}
+      ]
+    },
+    {
+      "id": "UIO",
+      "nombre": "Mariscal Sucre",
+      "ciudad": "Quito",
+      "pais": "Ecuador",
+      "zonaHoraria": "UTC-5",
+      "esHub": true,
+      "costoAlojamiento": 44,
+      "costoAlimentacion": 13,
+      "actividades": [
+        {"nombre": "Mitad del mundo", "tipo": "opcional", "duracionMin": 200, "costoUSD": 20}
+      ],
+      "trabajos": [
+        {"nombre": "Asistente sala", "tarifaHora": 10, "maxHoras": 5}
+      ]
+    },
+    {
+      "id": "LIM",
+      "nombre": "Jorge Chavez",
+      "ciudad": "Lima",
+      "pais": "Peru",
+      "zonaHoraria": "UTC-5",
+      "esHub": true,
+      "costoAlojamiento": 46,
+      "costoAlimentacion": 13,
+      "actividades": [
+        {"nombre": "Tour gastronomico", "tipo": "opcional", "duracionMin": 160, "costoUSD": 24}
+      ],
+      "trabajos": [
+        {"nombre": "Apoyo embarque", "tarifaHora": 10, "maxHoras": 6}
+      ]
+    },
+    {
+      "id": "SCL",
+      "nombre": "Arturo Merino Benitez",
+      "ciudad": "Santiago",
+      "pais": "Chile",
+      "zonaHoraria": "UTC-4",
+      "esHub": true,
+      "costoAlojamiento": 52,
+      "costoAlimentacion": 15,
+      "actividades": [
+        {"nombre": "Museo de aviacion", "tipo": "opcional", "duracionMin": 130, "costoUSD": 19}
+      ],
+      "trabajos": [
+        {"nombre": "Control de acceso", "tarifaHora": 12, "maxHoras": 4}
+      ]
+    },
+    {
+      "id": "EZE",
+      "nombre": "Ministro Pistarini",
+      "ciudad": "Buenos Aires",
+      "pais": "Argentina",
+      "zonaHoraria": "UTC-3",
+      "esHub": false,
+      "costoAlojamiento": 55,
+      "costoAlimentacion": 16,
+      "actividades": [
+        {"nombre": "Tour urbano", "tipo": "opcional", "duracionMin": 170, "costoUSD": 23}
+      ],
+      "trabajos": [
+        {"nombre": "Asistente pista", "tarifaHora": 11, "maxHoras": 5}
+      ]
+    },
+    {
+      "id": "PTY",
+      "nombre": "Tocumen",
+      "ciudad": "Ciudad de Panama",
+      "pais": "Panama",
+      "zonaHoraria": "UTC-5",
+      "esHub": true,
+      "costoAlojamiento": 47,
+      "costoAlimentacion": 14,
+      "actividades": [
+        {"nombre": "Canal de Panama", "tipo": "opcional", "duracionMin": 210, "costoUSD": 21}
+      ],
+      "trabajos": [
+        {"nombre": "Apoyo check-in", "tarifaHora": 10, "maxHoras": 6}
+      ]
+    }
+  ],
+  "aristas": [
+    {"origen": "BOG", "destino": "MDE", "distanciaKm": 215, "aeronaves": ["Avion Comercial", "Helice"], "costoBase": 1, "estanciaMinima": 120},
+    {"origen": "MDE", "destino": "CLO", "distanciaKm": 330, "aeronaves": ["Avion Regional", "Helice"], "costoBase": 1, "estanciaMinima": 90},
+    {"origen": "CLO", "destino": "UIO", "distanciaKm": 490, "aeronaves": ["Avion Comercial", "Avion Regional"], "costoBase": 1, "estanciaMinima": 120},
+    {"origen": "UIO", "destino": "LIM", "distanciaKm": 1320, "aeronaves": ["Avion Comercial", "Avion Regional"], "costoBase": 1, "estanciaMinima": 180},
+    {"origen": "LIM", "destino": "SCL", "distanciaKm": 2460, "aeronaves": ["Avion Comercial"], "costoBase": 1, "estanciaMinima": 180},
+    {"origen": "SCL", "destino": "EZE", "distanciaKm": 1130, "aeronaves": ["Avion Comercial", "Helice"], "costoBase": 1, "estanciaMinima": 150},
+    {"origen": "EZE", "destino": "PTY", "distanciaKm": 5320, "aeronaves": ["Avion Comercial"], "costoBase": 1, "estanciaMinima": 240},
+    {"origen": "PTY", "destino": "BOG", "distanciaKm": 760, "aeronaves": ["Avion Comercial", "Avion Regional"], "costoBase": 1, "estanciaMinima": 120},
+    {"origen": "BOG", "destino": "LIM", "distanciaKm": 1890, "aeronaves": ["Avion Comercial", "Avion Regional"], "costoBase": 1, "estanciaMinima": 120},
+    {"origen": "MDE", "destino": "PTY", "distanciaKm": 530, "aeronaves": ["Avion Comercial", "Helice"], "costoBase": 0, "estanciaMinima": 120},
+    {"origen": "LIM", "destino": "BOG", "distanciaKm": 1890, "aeronaves": ["Avion Regional", "Helice"], "costoBase": 1, "estanciaMinima": 120},
+    {"origen": "UIO", "destino": "BOG", "distanciaKm": 730, "aeronaves": ["Avion Comercial", "Helice"], "costoBase": 1, "estanciaMinima": 100}
+  ],
+  "config": {
+    "aeronaves": {
+      "Avion Comercial": {"costoKm": 0.18, "tiempoKm": 0.7},
+      "Avion Regional": {"costoKm": 0.25, "tiempoKm": 1.1},
+      "Helice": {"costoKm": 0.12, "tiempoKm": 2.5}
+    },
+    "presupuestoMinimoPorc": 35,
+    "intervaloAlojamiento": 20,
+    "intervaloAlimentacion": 8
+  }
+}

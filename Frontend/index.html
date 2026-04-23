@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FAC AeroGraph | SkyRoute Planner</title>
+  <link id="appFavicon" rel="icon" type="image/png" href="assets/img/logotipos.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+</head>
+<body>
+  <div id="splash" class="splash-screen" aria-hidden="true">
+    <div class="splash-card">
+      <div class="logo-focus logo-focus-loader">
+        <img src="assets/img/logotipos.png" alt="Logo FAC AeroGraph" />
+      </div>
+      <p class="splash-tag">FAC AeroGraph</p>
+      <p class="splash-sub">Rutas inteligentes, decisiones eficientes</p>
+    </div>
+  </div>
+
+  <div class="bg-orb orb-a"></div>
+  <div class="bg-orb orb-b"></div>
+
+  <header class="topbar">
+    <div class="brand-copy">
+      <p class="brand-tag">FAC Airways</p>
+      <h1>SkyRoute Planner</h1>
+      <p class="sub">Proyecto academico de grafos: rutas dirigidas, costo, tiempo y distancia.</p>
+    </div>
+    <figure class="logo-showcase">
+      <div class="logo-focus">
+        <img src="assets/img/logotipos.png" alt="Logo principal FAC AeroGraph" />
+      </div>
+      <figcaption>FAC AeroGraph</figcaption>
+    </figure>
+  </header>
+
+  <main class="layout">
+    <aside class="panel controls">
+      <section>
+        <h2>Carga</h2>
+        <label>Ruta JSON
+          <input id="jsonPath" value="data/sample_network.json" />
+        </label>
+        <button id="btnLoad">Cargar red</button>
+      </section>
+
+      <section>
+        <h2>Ruta por criterio</h2>
+        <label>Origen
+          <select id="origin"></select>
+        </label>
+        <label>Destino
+          <select id="destination"></select>
+        </label>
+        <label>Criterios
+          <select id="criteria" multiple>
+            <option value="distancia">Distancia</option>
+            <option value="tiempo">Tiempo</option>
+            <option value="costo">Costo</option>
+          </select>
+        </label>
+        <label><input type="checkbox" id="excludeSecondary" /> Excluir secundarios</label>
+        <button id="btnBestRoute">Calcular</button>
+      </section>
+
+      <section>
+        <h2>Plan basico</h2>
+        <label>Presupuesto USD
+          <input id="budget" type="number" value="700" />
+        </label>
+        <label>Tiempo total (horas)
+          <input id="timeHours" type="number" value="28" />
+        </label>
+        <button id="btnBasic">Simular plan basico</button>
+      </section>
+
+      <section>
+        <h2>Interrupcion de ruta</h2>
+        <label>Origen ruta
+          <input id="blockOrigin" placeholder="BOG" />
+        </label>
+        <label>Destino ruta
+          <input id="blockDestination" placeholder="MDE" />
+        </label>
+        <button id="btnBlock">Bloquear</button>
+        <button id="btnUnblock" class="ghost">Desbloquear</button>
+      </section>
+    </aside>
+
+    <section class="panel graph-wrap">
+      <div id="graph"></div>
+    </section>
+
+    <aside class="panel details">
+      <h2>Detalle</h2>
+      <div id="airportInfo" class="info-box">Selecciona un aeropuerto para ver informacion.</div>
+      <h2>Salida</h2>
+      <pre id="output"></pre>
+    </aside>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
