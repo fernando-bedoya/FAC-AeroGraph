@@ -327,6 +327,60 @@ button.ghost {
   }
 }
 
+#airportInfo {
+  background: linear-gradient(135deg, rgba(15, 60, 90, 0.6), rgba(20, 50, 80, 0.6));
+  border: 1px solid rgba(100, 190, 255, 0.2);
+  border-radius: 10px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+  font-size: 0.95rem;
+  line-height: 1.6;
+}
+
+.airport-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.8rem;
+  padding-bottom: 0.8rem;
+  border-bottom: 1px solid rgba(100, 190, 255, 0.15);
+}
+
+.airport-code {
+  font-size: 1.6rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--accent);
+  text-shadow: 0 0 12px rgba(50, 210, 255, 0.3);
+}
+
+.airport-hub-badge {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  padding: 0.35rem 0.65rem;
+  border-radius: 6px;
+  background: rgba(255, 127, 80, 0.15);
+  color: #ffb88c;
+  border: 1px solid rgba(255, 127, 80, 0.3);
+}
+
+.airport-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.airport-info p {
+  margin: 0;
+  color: var(--ink);
+}
+
+.airport-info strong {
+  color: var(--accent-2);
+  font-weight: 600;
+}
+
 @media (max-width: 1180px) {
   .topbar {
     flex-direction: column;

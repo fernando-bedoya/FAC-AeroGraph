@@ -80,15 +80,21 @@ function fillAirportSelectors(airports) {
 }
 
 function showAirportDetails(data) {
-  refs.airportInfo.textContent = [
-    `IATA: ${data.id}`,
-    `Aeropuerto: ${data.name}`,
-    `Ciudad: ${data.city}`,
-    `Pais: ${data.country}`,
-    `Zona horaria: ${data.timezone}`,
-    `Tipo: ${data.isHub ? "Hub" : "Secundario"}`,
-    `Aerolineas: ${data.airlines}`,
-  ].join("\n");
+  refs.airportInfo.innerHTML = [
+    `<div class="airport-header">`,
+    `<span class="airport-code">${data.id}</span>`,
+    `<span class="airport-hub-badge">${data.isHub ? "🔴 HUB" : "○ Regular"}</span>`,
+    `</div>`,
+    `<div class="airport-info">`,
+    `<p><strong>Aeropuerto:</strong> ${data.name}</p>`,
+    `<p><strong>Ciudad:</strong> ${data.city}</p>`,
+    `<p><strong>País:</strong> ${data.country}</p>`,
+    `<p><strong>Zona horaria:</strong> ${data.timezone}</p>`,
+    (data.aircraftTypes && data.aircraftTypes.length > 0)
+      ? `<p><strong>Aeronaves que operan:</strong><br/>${data.aircraftTypes.join(", ")}</p>`
+      : `<p><strong>Aeronaves que operan:</strong> Sin rutas salientes</p>`,
+    `</div>`,
+  ].join("");
 }
 
 function drag(simulationRef) {
@@ -169,7 +175,7 @@ function renderGraph(graphData) {
     country: a.country,
     timezone: a.timezone,
     isHub: a.isHub,
-    airlines: "No definido en dataset",
+    aircraftTypes: a.aircraftTypes || [],
   }));
 
   const links = graphData.routes.map((r) => ({

@@ -56,6 +56,16 @@ def get_graph_data():
     graph = app_state.graph
     assert graph is not None
 
+    # Get all routes to extract aircraft types by airport
+    all_routes = graph.get_all_routes()
+    aircraft_by_airport = {}
+    
+    for route in all_routes:
+        if route.origin not in aircraft_by_airport:
+            aircraft_by_airport[route.origin] = set()
+        for aircraft in route.aircraft_types:
+            aircraft_by_airport[route.origin].add(aircraft)
+
     airports = [
         {
             "id": airport.id,
@@ -66,6 +76,7 @@ def get_graph_data():
             "isHub": airport.is_hub,
             "lodgingCost": airport.lodging_cost,
             "foodCost": airport.food_cost,
+            "aircraftTypes": sorted(list(aircraft_by_airport.get(airport.id, []))),
             "activities": [a.__dict__ for a in airport.activities],
             "jobs": [j.__dict__ for j in airport.jobs],
         }
