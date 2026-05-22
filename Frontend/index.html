@@ -58,11 +58,36 @@
           <select id="destination"></select>
         </label>
         <label>Criterios
-          <select id="criteria" multiple>
-            <option value="distancia">Distancia</option>
-            <option value="tiempo">Tiempo</option>
-            <option value="costo">Costo</option>
-          </select>
+          <div class="criteria-selector">
+            <label class="checkbox-item">
+              <input type="checkbox" class="criteria-checkbox" value="distancia" checked />
+              <span>Distancia</span>
+            </label>
+            <label class="checkbox-item">
+              <input type="checkbox" class="criteria-checkbox" value="tiempo" checked />
+              <span>Tiempo</span>
+            </label>
+            <label class="checkbox-item">
+              <input type="checkbox" class="criteria-checkbox" value="costo" checked />
+              <span>Costo</span>
+            </label>
+          </div>
+        </label>
+        <label>Tipos de transporte
+          <div class="aircraft-selector">
+            <label class="checkbox-item">
+              <input type="checkbox" class="aircraft-checkbox" value="Avión Comercial" checked />
+              <span>Avión Comercial</span>
+            </label>
+            <label class="checkbox-item">
+              <input type="checkbox" class="aircraft-checkbox" value="Avión Regional" checked />
+              <span>Avión Regional</span>
+            </label>
+            <label class="checkbox-item">
+              <input type="checkbox" class="aircraft-checkbox" value="Hélice" checked />
+              <span>Hélice</span>
+            </label>
+          </div>
         </label>
         <label><input type="checkbox" id="excludeSecondary" /> Excluir secundarios</label>
         <button id="btnBestRoute">Calcular</button>
@@ -70,6 +95,9 @@
 
       <section>
         <h2>Plan basico</h2>
+        <label>Origen
+          <select id="originBasic"></select>
+        </label>
         <label>Presupuesto USD
           <input id="budget" type="number" value="700" />
         </label>
@@ -99,11 +127,14 @@
     <aside class="panel details">
       <h2>Detalle</h2>
       <div id="airportInfo" class="info-box">Selecciona un aeropuerto para ver informacion.</div>
-      <h2>Salida</h2>
+      <h2>Rutas</h2>
+      <div id="routesContainer" class="routes-container"></div>
+      <h2>JSON (DEBUG)</h2>
       <pre id="output"></pre>
     </aside>
   </main>
 
-  <script src="app.js"></script>
+  <!-- Carga el módulo principal de la aplicación -->
+  <script type="module" src="app.js"></script>
 </body>
 </html>

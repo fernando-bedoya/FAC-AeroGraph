@@ -1,0 +1,256 @@
+/**
+ * Event Handlers - Responsabilidad única: Manejar todos los eventos del usuario
+ * Single Responsibility: Conectar UI con servicios
+ */
+
+import { graphService } from "../services/graphService.js";
+import { routeService } from "../services/routeService.js";
+import { graphRenderer } from "../ui/graphRenderer.js";
+import { routesRenderer } from "../ui/routesRenderer.js";
+import { airportInfoPanel } from "../ui/airportPanel.js";
+import { debugRenderer } from "../ui/debugRenderer.js";
+import { MESSAGES } from "../constants/config.js";
+
+export class EventHandlers {
+  constructor(refs) {
+    this.refs = refs;
+  }
+
+  /**
+   * Maneja la carga del archivo JSON
+   */
+  async handleLoadGraph(event) {
+    event?.preventDefault();
+    try {
+      const filePath = this.refs.jsonPath.value.trim();
+      if (!filePath) {
+        routesRenderer.displayError("❌ Ingresa una ruta válida");
+        return;
+      }
+
+      await graphService.loadGraph(filePath);
+      const graphData = graphService.getGraphData();
+      
+      this._fillAirportSelectors(graphData.airports);
+      graphRenderer.render(graphData, (airport) => this.handleAirportClick(airport));
+      routesRenderer.displayEmpty(MESSAGES.INFO.INITIAL);
+      debugRenderer.displayJSON({
+        message: "✅ Red cargada correctamente",
+        airports: graphData.airports.length,
+        routes: graphData.routes.length,
+        timestamp: new Date().toISOString(),
+      });
+    } catch (error) {
+      routesRenderer.displayError(`⚠️ ${error.message}`);
+      debugRenderer.displayError(error);
+    }
+  }
+
+  /**
+   * Maneja el cálculo del plan básico
+   */
+  async handleBasicPlan(event) {
+    event?.preventDefault();
+    
+    if (!graphService.isLoaded()) {
+      routesRenderer.displayError(MESSAGES.ERRORS.NO_GRAPH);
+      return;
+    }
+
+    try {
+      routesRenderer.displayEmpty(MESSAGES.INFO.LOADING);
+      
+      const result = await routeService.calculateBasicPlan(
+        this.refs.originBasic.value,
+        Number(this.refs.budget.value),
+        Number(this.refs.timeHours.value)
+      );
+
+      if (result.budget_route && result.time_route) {
+        routesRenderer.displayBasicPlans(result.budget_route, result.time_route);
+        debugRenderer.displayJSON(result);
+      } else {
+        routesRenderer.displayEmpty(MESSAGES.ERRORS.NO_ROUTES);
+        debugRenderer.displayMessage("⚠️ No se encontraron rutas");
+      }
+    } catch (error) {
+      routesRenderer.displayError(`⚠️ ${error.message}`);
+      debugRenderer.displayError(error);
+    }
+  }
+
+  /**
+   * Maneja el cálculo de mejor ruta
+   */
+  async handleBestRoute(event) {
+    event?.preventDefault();
+
+    if (!graphService.isLoaded()) {
+      routesRenderer.displayError(MESSAGES.ERRORS.NO_GRAPH);
+      return;
+    }
+
+    const selectedCriteria = this._getSelectedCriteria();
+    if (selectedCriteria.length === 0) {
+      routesRenderer.displayError(MESSAGES.ERRORS.NO_CRITERIA);
+      return;
+    }
+
+    const selectedAircraft = this._getSelectedAircraftTypes();
+    if (selectedAircraft.length === 0) {
+      routesRenderer.displayError("❌ Debes seleccionar al menos un tipo de transporte");
+      return;
+    }
+
+    try {
+      routesRenderer.displayEmpty(MESSAGES.INFO.LOADING);
+      
+      const origin = this.refs.origin.value;
+      const destination = this.refs.destination.value;
+      
+      const result = await routeService.calculateBestRoute(
+        origin,
+        destination,
+        selectedCriteria,
+        this.refs.excludeSecondary.checked,
+        selectedAircraft
+      );
+
+      // Filtrar rutas que no respetan los transportes seleccionados
+      const filteredResult = routeService.filterRoutesByAircraft(result, selectedAircraft);
+      
+      // Verificar si hay al menos una ruta alcanzable con el transporte seleccionado
+      const hasReachableRoute = filteredResult && Object.values(filteredResult).some(r => r.reachable);
+      
+      if (hasReachableRoute) {
+        routesRenderer.displayOptimizedRoute(filteredResult, origin, selectedCriteria);
+        debugRenderer.displayJSON(filteredResult);
+      } else {
+        // No hay ruta con el transporte seleccionado. Verificar si hay ruta sin el filtro
+        const resultAllTransport = await routeService.calculateBestRouteAllTransport(
+          origin,
+          destination,
+          selectedCriteria,
+          this.refs.excludeSecondary.checked
+        );
+
+        // Verificar si hay ruta alcanzable sin filtro de transporte
+        const hasReachableRouteAllTransport = resultAllTransport && 
+          Object.values(resultAllTransport).some(r => r.reachable);
+
+        // Si hay ruta sin transporte pero no con el seleccionado: mostrar mensaje específico
+        if (hasReachableRouteAllTransport) {
+          routesRenderer.displayNoTransportAvailable(
+            origin,
+            destination,
+            selectedAircraft
+          );
+          debugRenderer.displayMessage(
+            `⚠️ No existe ruta disponible de ${origin} a ${destination} con los transportes seleccionados: ${selectedAircraft.join(", ")}`
+          );
+        } else {
+          // No hay ruta ni con ni sin transporte
+          routesRenderer.displayEmpty(MESSAGES.ERRORS.NO_ROUTES);
+          debugRenderer.displayMessage(
+            `⚠️ No se encontraron rutas disponibles de ${origin} a ${destination} para los criterios seleccionados`
+          );
+        }
+      }
+    } catch (error) {
+      routesRenderer.displayError(`⚠️ ${error.message}`);
+      debugRenderer.displayError(error);
+    }
+  }
+
+  /**
+   * Maneja el bloqueo/desbloqueo de rutas
+   */
+  async handleBlockRoute(blocked) {
+    if (!graphService.isLoaded()) {
+      routesRenderer.displayError(MESSAGES.ERRORS.NO_GRAPH);
+      return;
+    }
+
+    try {
+      const origin = this.refs.blockOrigin.value.trim().toUpperCase();
+      const destination = this.refs.blockDestination.value.trim().toUpperCase();
+
+      if (!origin || !destination) {
+        routesRenderer.displayError("❌ Ingresa origen y destino válidos");
+        return;
+      }
+
+      await graphService.blockRoute(origin, destination, blocked);
+      const graphData = graphService.getGraphData();
+      graphRenderer.render(graphData, (airport) => this.handleAirportClick(airport));
+      
+      const action = blocked ? "Bloqueada" : "Desbloqueada";
+      const message = `✅ Ruta ${action}: ${origin} → ${destination}`;
+      routesRenderer.displayEmpty(message);
+      debugRenderer.displayJSON({
+        message: message,
+        route: { origin, destination, blocked },
+        timestamp: new Date().toISOString(),
+      });
+    } catch (error) {
+      routesRenderer.displayError(`⚠️ ${error.message}`);
+      debugRenderer.displayError(error);
+    }
+  }
+
+  /**
+   * Maneja el clic en aeropuertos del grafo
+   */
+  handleAirportClick(airport) {
+    airportInfoPanel.displayAirport(airport);
+  }
+
+  /**
+   * Llena los selectores de origen y destino
+   * @private
+   */
+  _fillAirportSelectors(airports) {
+    this.refs.origin.innerHTML = "";
+    this.refs.destination.innerHTML = "";
+    this.refs.originBasic.innerHTML = "";
+
+    airports.forEach((airport) => {
+      const option1 = document.createElement("option");
+      option1.value = airport.id;
+      option1.textContent = `${airport.id} - ${airport.city}`;
+
+      const option2 = option1.cloneNode(true);
+      const option3 = option1.cloneNode(true);
+
+      this.refs.origin.appendChild(option1);
+      this.refs.destination.appendChild(option2);
+      this.refs.originBasic.appendChild(option3);
+    });
+
+    if (airports.length > 1) {
+      this.refs.origin.value = airports[0].id;
+      this.refs.destination.value = airports[1].id;
+      this.refs.originBasic.value = airports[0].id;
+    }
+  }
+
+  /**
+   * Obtiene los criterios seleccionados
+   * @private
+   */
+  _getSelectedCriteria() {
+    return Array.from(this.refs.criteriaCheckboxes)
+      .filter(checkbox => checkbox.checked)
+      .map(checkbox => checkbox.value);
+  }
+
+  /**
+   * Obtiene los tipos de transporte seleccionados
+   * @private
+   */
+  _getSelectedAircraftTypes() {
+    return Array.from(this.refs.aircraftCheckboxes)
+      .filter(checkbox => checkbox.checked)
+      .map(checkbox => checkbox.value);
+  }
+}

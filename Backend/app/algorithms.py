@@ -1,4 +1,5 @@
 import heapq
+from dataclasses import dataclass
 from typing import Dict, List, Optional, Set, Tuple
 
 from .graph import DirectedGraph
@@ -116,7 +117,45 @@ def dijkstra_path(
     return path_segments
 
 
-def greedy_cover_route(
+@dataclass
+class CoverageState:
+    """
+    Estado para el algoritmo Dijkstra de cobertura máxima.
+    Representa un punto en la exploración de rutas aéreas.
+    """
+    priority: float  # costo acumulado o tiempo acumulado (según criterio)
+    cost: float  # costo acumulado total en USD
+    time: float  # tiempo acumulado total en minutos
+    current_node: str  # código IATA del aeropuerto actual
+    visited: frozenset  # conjunto inmutable de aeropuertos visitados
+    aircraft_types: frozenset  # conjunto de tipos de aeronaves usadas (ej: {"Avion Comercial", "Helice"})
+    path: List[TravelSegment]  # secuencia de vuelos realizados
+
+    def __lt__(self, other: 'CoverageState') -> bool:
+        """
+        Comparación para heapq con PRIORIDAD TRIPLE:
+        1. PRIMERO: Cantidad de destinos visitados (DESCENDENTE - más destinos primero)
+        2. SEGUNDO: Uso de todos los tipos de transporte (DESCENDENTE - quien tenga los 3 primero)
+        3. DESEMPATE: Costo/tiempo acumulado (ASCENDENTE - más barato/rápido primero)
+        
+        Esto asegura que Dijkstra expanda primero los estados con más destinos Y que hayan
+        usado los 3 tipos de transporte obligatorios, garantizando máxima cobertura.
+        """
+        # 1. Si la cantidad de visitados es diferente, priorizar el que tiene MÁS destinos
+        if len(self.visited) != len(other.visited):
+            return len(self.visited) > len(other.visited)
+        
+        # 2. Si ambos tienen misma cantidad de destinos, priorizar quien tenga los 3 transportes
+        self_has_all_aircraft = len(self.aircraft_types) == 3
+        other_has_all_aircraft = len(other.aircraft_types) == 3
+        if self_has_all_aircraft != other_has_all_aircraft:
+            return self_has_all_aircraft  # True > False, así que quien tenga los 3 va primero
+        
+        # 3. Si hay empate en destinos y transportes, usar criterio de costo/tiempo
+        return self.priority < other.priority
+
+
+def dijkstra_max_coverage(
     graph: DirectedGraph,
     aircraft_cfg: Dict[str, AircraftConfig],
     origin: str,
@@ -124,48 +163,155 @@ def greedy_cover_route(
     time_limit_min: float,
     optimize_for: str,
 ) -> List[TravelSegment]:
-    # Heuristica simple: desde el nodo actual tomamos el vecino mas conveniente que no rompa limites.
-    current = origin
-    used: Set[str] = {origin}
-    total_cost = 0.0
-    total_time = 0.0
-    segments: List[TravelSegment] = []
+    """
+    Algoritmo Dijkstra con estado extendido para encontrar la ruta que
+    visite la MAYOR CANTIDAD de aeropuertos sin exceder presupuesto ni tiempo.
 
-    while True:
-        best_choice: Optional[Tuple[float, TravelSegment]] = None
+    JUSTIFICACIÓN DE DIJKSTRA SOBRE GREEDY:
+    El algoritmo greedy toma decisiones locales óptimas que NO garantizan
+    la solución global óptima. Puede elegir un destino cercano (bajo costo)
+    que luego bloquea el acceso a múltiples destinos mejores.
 
-        for route in graph.get_outgoing_routes(current):
-            if route.blocked or route.destination in used:
+    Dijkstra con estado extendido (conjunto de nodos visitados) explora
+    TODAS las rutas posibles en orden de costo/tiempo creciente, garantizando
+    encontrar la ruta con cobertura máxima dentro de las restricciones.
+    Mediante poda de estados dominados, se reduce significativamente la
+    complejidad exponencial en grafos reales.
+
+    COMPLEJIDAD:
+    - Peor caso: O((V · 2^V) · log(V · 2^V) + E · V)
+    - Caso promedio con poda: mucho mejor, típicamente polinomial
+    donde V = número de aeropuertos, E = número de rutas.
+
+    PARÁMETROS:
+        graph: Grafo dirigido de rutas aéreas
+        aircraft_cfg: Diccionario de configuración de aeronaves por tipo
+        origin: Código IATA del aeropuerto de origen
+        budget_limit: Presupuesto máximo en USD
+        time_limit_min: Tiempo máximo disponible en minutos
+        optimize_for: Criterio de prioridad ("costo", "tiempo" o "distancia")
+
+    RETORNA:
+        Lista de TravelSegment que representa la ruta con máxima cobertura
+    """
+
+    # Estado inicial: en el origen, sin destinos visitados aún
+    initial_visited = frozenset({origin})
+    initial_state = CoverageState(
+        priority=0.0,
+        cost=0.0,
+        time=0.0,
+        current_node=origin,
+        visited=initial_visited,
+        aircraft_types=frozenset(),  # Sin aeronaves usadas aún
+        path=[]
+    )
+
+    # Heap: estados ordenados por prioridad (cobertura → transportes → costo/tiempo)
+    # Dijkstra siempre expande primero los estados que maximizan destinos y usan todos los transportes
+    heap = [initial_state]
+
+    # Tabla de poda: (current_node, visited_frozenset) -> min_priority visto
+    # Evita re-expandir el mismo nodo con el mismo conjunto de visitados
+    # si ya lo procesamos con costo/tiempo <= al actual
+    processed = {}
+
+    # Mejor resultado global: guardamos la ruta con máxima qty de nodos Y que use los 3 transportes
+    best_result = []
+    best_count = 1  # El origen cuenta como 1 nodo visitado
+    best_has_all_aircraft = False  # ¿El mejor resultado tiene los 3 transportes?
+
+    while heap:
+        current_state = heapq.heappop(heap)
+
+        # PODA: si ya procesamos este (nodo, visitados, tipos_transporte) con
+        # prioridad <= actual, saltar. Ahora incluimos aircraft_types para permitir
+        # explorar la misma cobertura con diferentes combinaciones de transporte
+        state_key = (current_state.current_node, current_state.visited, current_state.aircraft_types)
+        if state_key in processed:
+            if processed[state_key] <= current_state.priority:
+                continue
+        processed[state_key] = current_state.priority
+
+        # ACTUALIZAR MEJOR RESULTADO con prioridad doble:
+        # 1. Primero: Máxima cantidad de destinos
+        # 2. Segundo: Que use los 3 tipos de transporte
+        visited_count = len(current_state.visited)
+        current_has_all_aircraft = len(current_state.aircraft_types) == 3
+        
+        # Actualizar si: más destinos O (mismos destinos pero ahora tiene los 3 transportes)
+        if visited_count > best_count or (visited_count == best_count and current_has_all_aircraft and not best_has_all_aircraft):
+            best_count = visited_count
+            best_result = current_state.path
+            best_has_all_aircraft = current_has_all_aircraft
+
+        # EXPLORAR VECINOS: procesar todas las rutas salientes del nodo actual
+        for route in graph.get_outgoing_routes(current_state.current_node):
+            # Descartamos: ruta bloqueada O destino ya visitado
+            if route.blocked or route.destination in current_state.visited:
                 continue
 
-            best_weight, aircraft, seg_cost, seg_time = _weight_for_route(route, aircraft_cfg, optimize_for)
-            if aircraft == "":
-                continue
+            # IMPORTANTE: Iterar sobre TODAS las aeronaves disponibles en esta ruta
+            # para explorar diferentes combinaciones de transporte
+            for aircraft in route.aircraft_types:
+                if aircraft not in aircraft_cfg:
+                    continue
+                
+                # Calcular costo y tiempo para esta aeronave específica
+                aircraft_config = aircraft_cfg[aircraft]
+                seg_cost = (route.distance_km * aircraft_config.cost_per_km) + route.base_cost
+                seg_time = route.distance_km * aircraft_config.time_per_km
 
-            if total_cost + seg_cost > budget_limit:
-                continue
-            if total_time + seg_time > time_limit_min:
-                continue
+                # RESTRICCIÓN DURA: Según criterio de optimización
+                # 2.2.a (costo): Solo válido si NO se excede presupuesto
+                # 2.2.b (tiempo): Solo válido si NO se excede tiempo límite
+                new_cost = current_state.cost + seg_cost
+                new_time = current_state.time + seg_time
 
-            segment = TravelSegment(
-                origin=route.origin,
-                destination=route.destination,
-                aircraft=aircraft,
-                distance_km=route.distance_km,
-                segment_cost=seg_cost,
-                segment_time_min=seg_time,
-            )
-            if best_choice is None or best_weight < best_choice[0]:
-                best_choice = (best_weight, segment)
+                if optimize_for == "costo":
+                    # Ruta por presupuesto: solo aplica límite de costo
+                    if new_cost > budget_limit:
+                        continue
+                else:  # optimize_for == "tiempo"
+                    # Ruta por tiempo: solo aplica límite de tiempo
+                    if new_time > time_limit_min:
+                        continue
 
-        if best_choice is None:
-            break
+                # Crear segmento de viaje
+                new_segment = TravelSegment(
+                    origin=route.origin,
+                    destination=route.destination,
+                    aircraft=aircraft,
+                    distance_km=route.distance_km,
+                    segment_cost=seg_cost,
+                    segment_time_min=seg_time,
+                )
 
-        chosen = best_choice[1]
-        segments.append(chosen)
-        used.add(chosen.destination)
-        current = chosen.destination
-        total_cost += chosen.segment_cost
-        total_time += chosen.segment_time_min
+                # Nuevo conjunto de visitados (incluye destino actual)
+                new_visited = current_state.visited | frozenset({route.destination})
+                
+                # Nuevo conjunto de aeronaves usadas (agregar esta aeronave)
+                new_aircraft_types = current_state.aircraft_types | frozenset({aircraft})
 
-    return segments
+                # Calcular prioridad según criterio de optimización
+                # Esto es lo que determina el orden de expansión de Dijkstra
+                if optimize_for == "tiempo":
+                    new_priority = new_time
+                else:  # "costo" o "distancia"
+                    new_priority = new_cost
+
+                # Crear nuevo estado y agregar al heap
+                new_state = CoverageState(
+                    priority=new_priority,
+                    cost=new_cost,
+                    time=new_time,
+                    current_node=route.destination,
+                    visited=new_visited,
+                    aircraft_types=new_aircraft_types,  # ← Incluir los tipos de aeronaves usadas
+                    path=current_state.path + [new_segment]
+                )
+
+                heapq.heappush(heap, new_state)
+
+    return best_result
+

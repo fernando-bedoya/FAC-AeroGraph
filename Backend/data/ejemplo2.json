@@ -1,0 +1,206 @@
+{
+  "nodos": [
+    {
+      "id": "BOG",
+      "nombre": "El Dorado",
+      "ciudad": "Bogota",
+      "pais": "Colombia",
+      "zonaHoraria": "UTC-5",
+      "esHub": true,
+      "costoAlojamiento": 55,
+      "costoAlimentacion": 16,
+      "actividades": [],
+      "trabajos": []
+    },
+
+    {
+      "id": "MDE",
+      "nombre": "Jose Maria Cordova",
+      "ciudad": "Medellin",
+      "pais": "Colombia",
+      "zonaHoraria": "UTC-5",
+      "esHub": false,
+      "costoAlojamiento": 40,
+      "costoAlimentacion": 12,
+      "actividades": [],
+      "trabajos": []
+    },
+
+    {
+      "id": "CLO",
+      "nombre": "Alfonso Bonilla Aragon",
+      "ciudad": "Cali",
+      "pais": "Colombia",
+      "zonaHoraria": "UTC-5",
+      "esHub": false,
+      "costoAlojamiento": 38,
+      "costoAlimentacion": 11,
+      "actividades": [],
+      "trabajos": []
+    },
+
+    {
+      "id": "PTY",
+      "nombre": "Tocumen",
+      "ciudad": "Ciudad de Panama",
+      "pais": "Panama",
+      "zonaHoraria": "UTC-5",
+      "esHub": true,
+      "costoAlojamiento": 58,
+      "costoAlimentacion": 18,
+      "actividades": [],
+      "trabajos": []
+    },
+
+    {
+      "id": "LIM",
+      "nombre": "Jorge Chavez",
+      "ciudad": "Lima",
+      "pais": "Peru",
+      "zonaHoraria": "UTC-5",
+      "esHub": true,
+      "costoAlojamiento": 50,
+      "costoAlimentacion": 15,
+      "actividades": [],
+      "trabajos": []
+    },
+
+    {
+      "id": "SCL",
+      "nombre": "Arturo Merino Benitez",
+      "ciudad": "Santiago",
+      "pais": "Chile",
+      "zonaHoraria": "UTC-4",
+      "esHub": true,
+      "costoAlojamiento": 60,
+      "costoAlimentacion": 17,
+      "actividades": [],
+      "trabajos": []
+    },
+
+    {
+      "id": "EZE",
+      "nombre": "Ministro Pistarini",
+      "ciudad": "Buenos Aires",
+      "pais": "Argentina",
+      "zonaHoraria": "UTC-3",
+      "esHub": false,
+      "costoAlojamiento": 65,
+      "costoAlimentacion": 18,
+      "actividades": [],
+      "trabajos": []
+    }
+  ],
+
+  "aristas": [
+
+    {
+      "origen": "BOG",
+      "destino": "PTY",
+      "distanciaKm": 760,
+      "aeronaves": ["Avion Comercial"],
+      "costoBase": 1,
+      "estanciaMinima": 90
+    },
+
+    {
+      "origen": "PTY",
+      "destino": "EZE",
+      "distanciaKm": 5300,
+      "aeronaves": ["Avion Comercial"],
+      "costoBase": 1,
+      "estanciaMinima": 180
+    },
+
+
+
+    {
+      "origen": "BOG",
+      "destino": "LIM",
+      "distanciaKm": 1890,
+      "aeronaves": ["Avion Comercial"],
+      "costoBase": 1,
+      "estanciaMinima": 120
+    },
+
+    {
+      "origen": "LIM",
+      "destino": "EZE",
+      "distanciaKm": 3150,
+      "aeronaves": ["Avion Comercial"],
+      "costoBase": 1,
+      "estanciaMinima": 180
+    },
+
+
+
+    {
+      "origen": "BOG",
+      "destino": "MDE",
+      "distanciaKm": 215,
+      "aeronaves": ["Avion Regional"],
+      "costoBase": 0,
+      "estanciaMinima": 60
+    },
+
+    {
+      "origen": "MDE",
+      "destino": "CLO",
+      "distanciaKm": 330,
+      "aeronaves": ["Avion Regional"],
+      "costoBase": 0,
+      "estanciaMinima": 60
+    },
+
+    {
+      "origen": "CLO",
+      "destino": "LIM",
+      "distanciaKm": 1750,
+      "aeronaves": ["Avion Regional"],
+      "costoBase": 0,
+      "estanciaMinima": 90
+    },
+
+    {
+      "origen": "LIM",
+      "destino": "SCL",
+      "distanciaKm": 2450,
+      "aeronaves": ["Avion Regional"],
+      "costoBase": 0,
+      "estanciaMinima": 120
+    },
+
+    {
+      "origen": "SCL",
+      "destino": "EZE",
+      "distanciaKm": 1130,
+      "aeronaves": ["Avion Regional"],
+      "costoBase": 0,
+      "estanciaMinima": 90
+    }
+  ],
+
+  "config": {
+    "aeronaves": {
+
+      "Avion Comercial": {
+        "costoKm": 0.32,
+        "tiempoKm": 0.50
+      },
+
+      "Avion Regional": {
+        "costoKm": 0.10,
+        "tiempoKm": 1.40
+      },
+
+      "Helice": {
+        "costoKm": 0.06,
+        "tiempoKm": 2.80
+      }
+    },
+
+    "presupuestoMinimoPorc": 35,
+    "intervaloAlojamiento": 20,
+    "intervaloAlimentacion": 8
+  }
+}
