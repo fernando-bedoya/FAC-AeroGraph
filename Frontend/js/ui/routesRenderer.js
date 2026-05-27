@@ -31,6 +31,77 @@ class RoutesRenderer {
   }
 
   /**
+   * Renderiza ruta sugerida con badge destacado (Req 2.3)
+   */
+  renderSuggestedRoute(suggestedRoute, originAirport) {
+    if (!suggestedRoute || !suggestedRoute.airports || suggestedRoute.airports.length <= 1) {
+      return "";
+    }
+
+    const airports = suggestedRoute.airports || [];
+    const segments = suggestedRoute.segments || [];
+    const totalCost = suggestedRoute.total_cost || 0;
+    const totalTime = suggestedRoute.total_time_min || 0;
+
+    const stats = `
+      <div class="stat-item">
+        <div class="stat-label">Destinos</div>
+        <div class="stat-value">${airports.length - 1}</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-label">Costo USD</div>
+        <div class="stat-value cost-display">${totalCost.toFixed(2)}</div>
+      </div>
+    `;
+
+    const segmentsHtml = segments.map((seg, idx) => `
+      <div class="segment">
+        <div class="segment-header">
+          <span class="airport-badge">${seg.origin}</span>
+          <span class="segment-arrow">→</span>
+          <span class="airport-badge">${seg.destination}</span>
+          <span class="aircraft-badge">${seg.aircraft}</span>
+        </div>
+        <div class="segment-details">
+          <div class="detail-item">
+            <span>Distancia:</span>
+            <span class="detail-value distance-display">${seg.distance_km.toFixed(1)} km</span>
+          </div>
+          <div class="detail-item">
+            <span>Costo:</span>
+            <span class="detail-value cost-display">${seg.segment_cost.toFixed(2)}</span>
+          </div>
+          <div class="detail-item">
+            <span>Tiempo:</span>
+            <span class="detail-value time-display">${(seg.segment_time_min / 60).toFixed(2)}h</span>
+          </div>
+        </div>
+      </div>
+    `).join("");
+
+    const destinations = `
+      <div class="destination-list">
+        <strong>✈ Itinerario Completo</strong>
+        <div class="destination-badges">
+          ${airports.map(airport => `<span class="dest-badge">${airport}</span>`).join("")}
+        </div>
+      </div>
+    `;
+
+    return `
+      <div class="route-card">
+        <div class="route-title">
+          🎯 Ruta Sugerida 
+          <span style="background: #22c55e; color: white; padding: 2px 8px; border-radius: 12px; font-size: 0.8em; margin-left: 8px;">Máx. destinos, mín. gasto</span>
+        </div>
+        <div class="route-stats">${stats}</div>
+        <div class="segments-list">${segmentsHtml}</div>
+        ${destinations}
+      </div>
+    `;
+  }
+
+  /**
    * Renderiza estadísticas de la ruta
    * @private
    */
@@ -107,6 +178,16 @@ class RoutesRenderer {
       ${this.renderRoutePlan(budgetPlan, "💰 Mayor cantidad de destinos sin exceder presupuesto")}
       ${this.renderRoutePlan(timePlan, "⏱️ Mayor cantidad de destinos en menor tiempo")}
     `;
+  }
+
+  /**
+   * Muestra la ruta sugerida (Requisito 2.3) en el panel de rutas
+   */
+  displaySuggestedRoute(suggestedRoute, originAirport) {
+    const html = this.renderSuggestedRoute(suggestedRoute, originAirport);
+    if (html) {
+      this.container.innerHTML = html;
+    }
   }
 
   /**

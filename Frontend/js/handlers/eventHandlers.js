@@ -5,10 +5,12 @@
 
 import { graphService } from "../services/graphService.js";
 import { routeService } from "../services/routeService.js";
+import { dynamicPlanService } from "../services/dynamicPlanService.js";
 import { graphRenderer } from "../ui/graphRenderer.js";
 import { routesRenderer } from "../ui/routesRenderer.js";
 import { airportInfoPanel } from "../ui/airportPanel.js";
 import { debugRenderer } from "../ui/debugRenderer.js";
+import { dynamicPanel } from "../ui/dynamicPanel.js";
 import { MESSAGES } from "../constants/config.js";
 
 export class EventHandlers {
@@ -199,6 +201,124 @@ export class EventHandlers {
   }
 
   /**
+   * Inicia la sesion dinamica
+   */
+  async handleDynamicStart(event) {
+    event?.preventDefault();
+
+    if (!graphService.isLoaded()) {
+      routesRenderer.displayError(MESSAGES.ERRORS.NO_GRAPH);
+      return;
+    }
+
+    try {
+      const state = await dynamicPlanService.start(
+        this.refs.originDynamic.value,
+        Number(this.refs.dynamicBudget.value),
+        Number(this.refs.dynamicTimeHours.value)
+      );
+
+      await this._refreshDynamicPanel(state);
+      debugRenderer.displayJSON(state);
+    } catch (error) {
+      routesRenderer.displayError(`⚠️ ${error.message}`);
+      debugRenderer.displayError(error);
+    }
+  }
+
+  /**
+   * Actualiza el estado dinamico
+   */
+  async handleDynamicRefresh(event) {
+    event?.preventDefault();
+
+    try {
+      const state = await dynamicPlanService.refresh();
+      await this._refreshDynamicPanel(state);
+    } catch (error) {
+      routesRenderer.displayError(`⚠️ ${error.message}`);
+      debugRenderer.displayError(error);
+    }
+  }
+
+  /**
+   * Registra actividades seleccionadas
+   */
+  async handleDynamicActivities(event) {
+    event?.preventDefault();
+
+    try {
+      const selected = this._getSelectedActivities();
+      const state = await dynamicPlanService.applyActivities(selected);
+      await this._refreshDynamicPanel(state);
+      debugRenderer.displayJSON(state);
+    } catch (error) {
+      routesRenderer.displayError(`⚠️ ${error.message}`);
+      debugRenderer.displayError(error);
+    }
+  }
+
+  /**
+   * Registra trabajo seleccionado
+   */
+  async handleDynamicWork(event) {
+    event?.preventDefault();
+
+    try {
+      const job = this._getSelectedJob();
+      if (!job) {
+        routesRenderer.displayError("❌ Selecciona un trabajo disponible");
+        return;
+      }
+
+      const hours = Number(this.refs.dynamicJobHours.value);
+      const state = await dynamicPlanService.work(job, hours);
+      await this._refreshDynamicPanel(state);
+      debugRenderer.displayJSON(state);
+    } catch (error) {
+      routesRenderer.displayError(`⚠️ ${error.message}`);
+      debugRenderer.displayError(error);
+    }
+  }
+
+  /**
+   * Registra vuelo seleccionado
+   */
+  async handleDynamicFly(event) {
+    event?.preventDefault();
+
+    try {
+      const flight = this._getSelectedFlight();
+      if (!flight) {
+        routesRenderer.displayError("❌ Selecciona un vuelo disponible");
+        return;
+      }
+
+      const state = await dynamicPlanService.fly(flight.destination, flight.aircraft);
+      await this._refreshDynamicPanel(state);
+      debugRenderer.displayJSON(state);
+    } catch (error) {
+      routesRenderer.displayError(`⚠️ ${error.message}`);
+      debugRenderer.displayError(error);
+    }
+  }
+
+  /**
+   * Finaliza la sesion dinamica
+   */
+  async handleDynamicFinish(event) {
+    event?.preventDefault();
+
+    try {
+      await dynamicPlanService.finish();
+      dynamicPanel.showEmpty("Sesion finalizada. Inicia una nueva sesion.");
+    } catch (error) {
+      routesRenderer.displayError(`⚠️ ${error.message}`);
+      debugRenderer.displayError(error);
+    }
+  }
+
+  /**
    * Maneja el clic en aeropuertos del grafo
    */
   handleAirportClick(airport) {
@@ -210,9 +330,17 @@ export class EventHandlers {
    * @private
    */
   _fillAirportSelectors(airports) {
-    this.refs.origin.innerHTML = "";
-    this.refs.destination.innerHTML = "";
-    this.refs.originBasic.innerHTML = "";
+    // Obtener elementos directamente del DOM para garantizar que existan
+    const origin = document.getElementById("origin");
+    const destination = document.getElementById("destination");
+    const originBasic = document.getElementById("originBasic");
+    const originDynamic = document.getElementById("originDynamic");
+
+    // Limpiar todos los selectores
+    if (origin) origin.innerHTML = "";
+    if (destination) destination.innerHTML = "";
+    if (originBasic) originBasic.innerHTML = "";
+    if (originDynamic) originDynamic.innerHTML = "";
 
     airports.forEach((airport) => {
       const option1 = document.createElement("option");
@@ -221,17 +349,73 @@ export class EventHandlers {
 
       const option2 = option1.cloneNode(true);
       const option3 = option1.cloneNode(true);
+      const option4 = option1.cloneNode(true);
 
-      this.refs.origin.appendChild(option1);
-      this.refs.destination.appendChild(option2);
-      this.refs.originBasic.appendChild(option3);
+      if (origin) origin.appendChild(option1);
+      if (destination) destination.appendChild(option2);
+      if (originBasic) originBasic.appendChild(option3);
+      if (originDynamic) originDynamic.appendChild(option4);
     });
 
     if (airports.length > 1) {
-      this.refs.origin.value = airports[0].id;
-      this.refs.destination.value = airports[1].id;
-      this.refs.originBasic.value = airports[0].id;
+      if (origin) origin.value = airports[0].id;
+      if (destination) destination.value = airports[1].id;
+      if (originBasic) originBasic.value = airports[0].id;
+      if (originDynamic) originDynamic.value = airports[0].id;
     }
+  }
+
+
+  /**
+   * Obtiene actividades seleccionadas
+   * @private
+   */
+  _getSelectedActivities() {
+    return Array.from(document.querySelectorAll("input[name='dynamic-activity']:checked"))
+      .map((input) => input.value);
+  }
+
+  /**
+   * Obtiene el trabajo seleccionado
+   * @private
+   */
+  _getSelectedJob() {
+    const selected = document.querySelector("input[name='dynamic-job']:checked");
+    return selected ? selected.value : null;
+  }
+
+  /**
+   * Obtiene el vuelo seleccionado
+   * @private
+   */
+  _getSelectedFlight() {
+    // Buscar cualquier radio button con data-destination que esté seleccionado
+    const selected = document.querySelector("input[data-destination][data-aircraft]:checked");
+    if (!selected) return null;
+    return {
+      destination: selected.dataset.destination,
+      aircraft: selected.dataset.aircraft,
+    };
+  }
+
+  /**
+   * Actualiza el panel dinamico
+   * @private
+   */
+  async _refreshDynamicPanel(state) {
+    dynamicPanel.renderState(state);
+    routesRenderer.displaySuggestedRoute(state.suggested_route || {}, state.origin);
+    dynamicPanel.renderSteps(state.steps || []);
+
+    const [activities, jobs, flights] = await Promise.all([
+      dynamicPlanService.listActivities(),
+      dynamicPlanService.listJobs(),
+      dynamicPlanService.listFlights(),
+    ]);
+
+    dynamicPanel.renderActivities(activities.activities || []);
+    dynamicPanel.renderJobs(jobs.jobs || []);
+    dynamicPanel.renderFlights(flights.options || []);
   }
 
   /**

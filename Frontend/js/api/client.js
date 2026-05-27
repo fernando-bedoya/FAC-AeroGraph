@@ -105,6 +105,81 @@ class ApiClient {
       blocked,
     });
   }
+
+  /**
+   * Inicia sesion dinamica
+   */
+  async dynamicStart(origin, budget, hours) {
+    return this.post(CONFIG.API.ENDPOINTS.DYNAMIC_START, {
+      origin,
+      initial_budget: budget,
+      total_time_hours: hours,
+    });
+  }
+
+  /**
+   * Obtiene estado dinamico
+   */
+  async dynamicState(sessionId) {
+    return this.get(`${CONFIG.API.ENDPOINTS.DYNAMIC_STATE}/${sessionId}`);
+  }
+
+  /**
+   * Lista actividades
+   */
+  async dynamicActivities(sessionId) {
+    return this.get(`${CONFIG.API.ENDPOINTS.DYNAMIC_ACTIVITIES}/${sessionId}`);
+  }
+
+  /**
+   * Registra actividades
+   */
+  async dynamicChooseActivities(sessionId, activities) {
+    return this.post(`${CONFIG.API.ENDPOINTS.DYNAMIC_ACTIVITIES}/${sessionId}`, {
+      activities,
+    });
+  }
+
+  /**
+   * Lista trabajos
+   */
+  async dynamicJobs(sessionId) {
+    return this.get(`${CONFIG.API.ENDPOINTS.DYNAMIC_JOBS}/${sessionId}`);
+  }
+
+  /**
+   * Registra trabajo
+   */
+  async dynamicWork(sessionId, jobName, hours) {
+    return this.post(`${CONFIG.API.ENDPOINTS.DYNAMIC_WORK}/${sessionId}`, {
+      job_name: jobName,
+      hours,
+    });
+  }
+
+  /**
+   * Lista opciones de vuelo
+   */
+  async dynamicFlightOptions(sessionId) {
+    return this.get(`${CONFIG.API.ENDPOINTS.DYNAMIC_FLIGHT_OPTIONS}/${sessionId}`);
+  }
+
+  /**
+   * Registra vuelo
+   */
+  async dynamicFly(sessionId, destination, aircraft) {
+    return this.post(`${CONFIG.API.ENDPOINTS.DYNAMIC_FLY}/${sessionId}`, {
+      destination,
+      aircraft,
+    });
+  }
+
+  /**
+   * Finaliza sesion dinamica
+   */
+  async dynamicFinish(sessionId) {
+    return this.post(`${CONFIG.API.ENDPOINTS.DYNAMIC_FINISH}/${sessionId}`, {});
+  }
 }
 
 export const apiClient = new ApiClient();

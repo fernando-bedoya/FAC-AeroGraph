@@ -76,15 +76,15 @@
         <label>Tipos de transporte
           <div class="aircraft-selector">
             <label class="checkbox-item">
-              <input type="checkbox" class="aircraft-checkbox" value="Avión Comercial" checked />
+              <input type="checkbox" class="aircraft-checkbox" value="Avion Comercial" checked />
               <span>Avión Comercial</span>
             </label>
             <label class="checkbox-item">
-              <input type="checkbox" class="aircraft-checkbox" value="Avión Regional" checked />
+              <input type="checkbox" class="aircraft-checkbox" value="Avion Regional" checked />
               <span>Avión Regional</span>
             </label>
             <label class="checkbox-item">
-              <input type="checkbox" class="aircraft-checkbox" value="Hélice" checked />
+              <input type="checkbox" class="aircraft-checkbox" value="Helice" checked />
               <span>Hélice</span>
             </label>
           </div>
@@ -105,6 +105,22 @@
           <input id="timeHours" type="number" value="28" />
         </label>
         <button id="btnBasic">Simular plan basico</button>
+      </section>
+
+      <section>
+        <h2>Planificacion dinamica</h2>
+        <label>Origen
+          <select id="originDynamic"></select>
+        </label>
+        <label>Presupuesto USD
+          <input id="dynamicBudget" type="number" value="700" />
+        </label>
+        <label>Tiempo total (horas)
+          <input id="dynamicTimeHours" type="number" value="28" />
+        </label>
+        <button id="btnDynamicStart">Iniciar sesion</button>
+        <button id="btnDynamicRefresh" class="ghost">Actualizar estado</button>
+        <button id="btnDynamicFinish" class="ghost">Finalizar sesion</button>
       </section>
 
       <section>
@@ -129,6 +145,32 @@
       <div id="airportInfo" class="info-box">Selecciona un aeropuerto para ver informacion.</div>
       <h2>Rutas</h2>
       <div id="routesContainer" class="routes-container"></div>
+      <h2>Planificacion dinamica</h2>
+      <div id="dynamicPanel" class="dynamic-panel">
+        <div id="dynamicState" class="info-box">Inicia una sesion para ver el estado.</div>
+        <div class="dynamic-grid">
+          <div class="dynamic-card">
+            <h3>Actividades</h3>
+            <div id="dynamicActivities"></div>
+            <button id="btnDynamicApplyActivities" class="ghost">Registrar actividades</button>
+          </div>
+          <div class="dynamic-card">
+            <h3>Trabajos</h3>
+            <div id="dynamicJobs"></div>
+            <label>Horas
+              <input id="dynamicJobHours" type="number" min="1" value="2" />
+            </label>
+            <button id="btnDynamicWork">Registrar trabajo</button>
+          </div>
+          <div class="dynamic-card">
+            <h3>Vuelos</h3>
+            <div id="dynamicFlights"></div>
+            <button id="btnDynamicFly">Confirmar vuelo</button>
+          </div>
+        </div>
+        <h3>Historial</h3>
+        <div id="dynamicSteps" class="dynamic-steps"></div>
+      </div>
       <h2>JSON (DEBUG)</h2>
       <pre id="output"></pre>
     </aside>

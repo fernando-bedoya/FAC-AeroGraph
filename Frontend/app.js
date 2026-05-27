@@ -25,6 +25,7 @@ import { graphRenderer } from "./js/ui/graphRenderer.js";
 import { routesRenderer } from "./js/ui/routesRenderer.js";
 import { airportInfoPanel } from "./js/ui/airportPanel.js";
 import { debugRenderer } from "./js/ui/debugRenderer.js";
+import { dynamicPanel } from "./js/ui/dynamicPanel.js";
 import { generateFaviconFromCollage, initSplashScreen } from "./js/utils/uiUtils.js";
 import { MESSAGES } from "./js/constants/config.js";
 
@@ -42,6 +43,7 @@ const refs = {
   budget: document.getElementById("budget"),
   timeHours: document.getElementById("timeHours"),
   originBasic: document.getElementById("originBasic"),
+  originDynamic: document.getElementById("originDynamic"),
   blockOrigin: document.getElementById("blockOrigin"),
   blockDestination: document.getElementById("blockDestination"),
   btnLoad: document.getElementById("btnLoad"),
@@ -49,6 +51,15 @@ const refs = {
   btnBasic: document.getElementById("btnBasic"),
   btnBlock: document.getElementById("btnBlock"),
   btnUnblock: document.getElementById("btnUnblock"),
+  dynamicBudget: document.getElementById("dynamicBudget"),
+  dynamicTimeHours: document.getElementById("dynamicTimeHours"),
+  dynamicJobHours: document.getElementById("dynamicJobHours"),
+  btnDynamicStart: document.getElementById("btnDynamicStart"),
+  btnDynamicRefresh: document.getElementById("btnDynamicRefresh"),
+  btnDynamicFinish: document.getElementById("btnDynamicFinish"),
+  btnDynamicApplyActivities: document.getElementById("btnDynamicApplyActivities"),
+  btnDynamicWork: document.getElementById("btnDynamicWork"),
+  btnDynamicFly: document.getElementById("btnDynamicFly"),
 };
 
 /**
@@ -75,6 +86,14 @@ refs.btnBestRoute.addEventListener("click", (e) => eventHandlers.handleBestRoute
 refs.btnBlock.addEventListener("click", () => eventHandlers.handleBlockRoute(true));
 refs.btnUnblock.addEventListener("click", () => eventHandlers.handleBlockRoute(false));
 
+// Planificacion dinamica
+refs.btnDynamicStart.addEventListener("click", (e) => eventHandlers.handleDynamicStart(e));
+refs.btnDynamicRefresh.addEventListener("click", (e) => eventHandlers.handleDynamicRefresh(e));
+refs.btnDynamicFinish.addEventListener("click", (e) => eventHandlers.handleDynamicFinish(e));
+refs.btnDynamicApplyActivities.addEventListener("click", (e) => eventHandlers.handleDynamicActivities(e));
+refs.btnDynamicWork.addEventListener("click", (e) => eventHandlers.handleDynamicWork(e));
+refs.btnDynamicFly.addEventListener("click", (e) => eventHandlers.handleDynamicFly(e));
+
 // Redimensionamiento de ventana
 window.addEventListener("resize", () => {
   window.dispatchEvent(new CustomEvent("layout:resized"));
@@ -99,6 +118,7 @@ document.addEventListener("DOMContentLoaded", () => {
   // 4. Mostrar estado inicial
   airportInfoPanel.displayInitialMessage();
   routesRenderer.displayEmpty(MESSAGES.INFO.INITIAL);
+  dynamicPanel.showEmpty("Inicia una sesion para ver el estado.");
 });
 
 /**

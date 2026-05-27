@@ -1,6 +1,6 @@
 from typing import Dict, List, Set
 
-from .algorithms import dijkstra_path, dijkstra_max_coverage
+from .algorithms import dijkstra_path, bellman_ford_max_coverage
 from .graph import DirectedGraph
 from .models import AircraftConfig, DynamicPlan, DynamicStep, TravelPlan
 
@@ -22,7 +22,7 @@ def plan_basic_itinerary(
 ) -> Dict[str, TravelPlan]:
     
     # 🔴 AQUÍ SE CALCULA LA RUTA POR PRESUPUESTO
-    max_destinations_budget = dijkstra_max_coverage(
+    max_destinations_budget = bellman_ford_max_coverage(
         graph=graph,
         aircraft_cfg=aircraft_cfg,
         origin=origin,
@@ -32,7 +32,7 @@ def plan_basic_itinerary(
     )
     
     # También calcula por tiempo (parte b)
-    max_destinations_time = dijkstra_max_coverage(
+    max_destinations_time = bellman_ford_max_coverage(
         graph=graph,
         aircraft_cfg=aircraft_cfg,
         origin=origin,
@@ -111,10 +111,10 @@ def simulate_dynamic_plan(
     visited = [origin]
     steps: List[DynamicStep] = []
 
-    segments = greedy_cover_route(
-        graph,
-        aircraft_cfg,
-        origin,
+    segments = bellman_ford_max_coverage(
+        graph=graph,
+        aircraft_cfg=aircraft_cfg,
+        origin=origin,
         budget_limit=10**9,
         time_limit_min=time_left_min,
         optimize_for="costo",

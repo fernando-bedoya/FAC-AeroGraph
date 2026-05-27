@@ -27,6 +27,26 @@ class DynamicPlanRequest(BaseModel):
     total_time_hours: float
 
 
+class DynamicStartRequest(BaseModel):
+    origin: str
+    initial_budget: float
+    total_time_hours: float
+
+
+class DynamicActivitiesRequest(BaseModel):
+    activities: List[str] = []
+
+
+class DynamicWorkRequest(BaseModel):
+    job_name: str
+    hours: int
+
+
+class DynamicFlyRequest(BaseModel):
+    destination: str
+    aircraft: str
+
+
 class BlockRouteRequest(BaseModel):
     origin: str
     destination: str

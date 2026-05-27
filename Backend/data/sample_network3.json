@@ -1,0 +1,341 @@
+{
+  "nodos": [
+    {
+      "id": "BOG",
+      "nombre": "El Dorado",
+      "ciudad": "Bogota",
+      "pais": "Colombia",
+      "zonaHoraria": "UTC-5",
+      "esHub": true,
+      "costoAlojamiento": 48,
+      "costoAlimentacion": 14,
+      "actividades": [
+        {
+          "nombre": "Tour centro historico",
+          "tipo": "opcional",
+          "duracionMin": 180,
+          "costoUSD": 22
+        },
+        {
+          "nombre": "Check-in internacional",
+          "tipo": "obligatoria",
+          "duracionMin": 45,
+          "costoUSD": 0
+        }
+      ],
+      "trabajos": [
+        {
+          "nombre": "Asistente de rampa",
+          "tarifaHora": 11,
+          "maxHoras": 6
+        }
+      ]
+    },
+    {
+      "id": "MDE",
+      "nombre": "Jose Maria Cordova",
+      "ciudad": "Medellin",
+      "pais": "Colombia",
+      "zonaHoraria": "UTC-5",
+      "esHub": false,
+      "costoAlojamiento": 40,
+      "costoAlimentacion": 12,
+      "actividades": [
+        {
+          "nombre": "City tour",
+          "tipo": "opcional",
+          "duracionMin": 150,
+          "costoUSD": 18
+        }
+      ],
+      "trabajos": [
+        {
+          "nombre": "Cargador de equipaje",
+          "tarifaHora": 9,
+          "maxHoras": 5
+        }
+      ]
+    },
+    {
+      "id": "PTY",
+      "nombre": "Tocumen",
+      "ciudad": "Ciudad de Panama",
+      "pais": "Panama",
+      "zonaHoraria": "UTC-5",
+      "esHub": true,
+      "costoAlojamiento": 47,
+      "costoAlimentacion": 14,
+      "actividades": [
+        {
+          "nombre": "Canal de Panama",
+          "tipo": "opcional",
+          "duracionMin": 210,
+          "costoUSD": 21
+        }
+      ],
+      "trabajos": [
+        {
+          "nombre": "Apoyo check-in",
+          "tarifaHora": 10,
+          "maxHoras": 6
+        }
+      ]
+    },
+    {
+      "id": "UIO",
+      "nombre": "Mariscal Sucre",
+      "ciudad": "Quito",
+      "pais": "Ecuador",
+      "zonaHoraria": "UTC-5",
+      "esHub": true,
+      "costoAlojamiento": 44,
+      "costoAlimentacion": 13,
+      "actividades": [
+        {
+          "nombre": "Mitad del mundo",
+          "tipo": "opcional",
+          "duracionMin": 200,
+          "costoUSD": 20
+        }
+      ],
+      "trabajos": [
+        {
+          "nombre": "Asistente sala",
+          "tarifaHora": 10,
+          "maxHoras": 5
+        }
+      ]
+    },
+    {
+      "id": "LIM",
+      "nombre": "Jorge Chavez",
+      "ciudad": "Lima",
+      "pais": "Peru",
+      "zonaHoraria": "UTC-5",
+      "esHub": true,
+      "costoAlojamiento": 46,
+      "costoAlimentacion": 13,
+      "actividades": [
+        {
+          "nombre": "Tour gastronomico",
+          "tipo": "opcional",
+          "duracionMin": 160,
+          "costoUSD": 24
+        }
+      ],
+      "trabajos": [
+        {
+          "nombre": "Apoyo embarque",
+          "tarifaHora": 10,
+          "maxHoras": 6
+        }
+      ]
+    },
+    {
+      "id": "CUZ",
+      "nombre": "Alejandro Velasco Astete",
+      "ciudad": "Cusco",
+      "pais": "Peru",
+      "zonaHoraria": "UTC-5",
+      "esHub": false,
+      "costoAlojamiento": 36,
+      "costoAlimentacion": 10,
+      "actividades": [
+        {
+          "nombre": "Visita Machu Picchu",
+          "tipo": "opcional",
+          "duracionMin": 360,
+          "costoUSD": 45
+        }
+      ],
+      "trabajos": [
+        {
+          "nombre": "Guia de aeropuerto",
+          "tarifaHora": 8,
+          "maxHoras": 4
+        }
+      ]
+    },
+    {
+      "id": "SCL",
+      "nombre": "Arturo Merino Benitez",
+      "ciudad": "Santiago",
+      "pais": "Chile",
+      "zonaHoraria": "UTC-4",
+      "esHub": true,
+      "costoAlojamiento": 52,
+      "costoAlimentacion": 15,
+      "actividades": [
+        {
+          "nombre": "Museo de aviacion",
+          "tipo": "opcional",
+          "duracionMin": 130,
+          "costoUSD": 19
+        }
+      ],
+      "trabajos": [
+        {
+          "nombre": "Control de acceso",
+          "tarifaHora": 12,
+          "maxHoras": 4
+        }
+      ]
+    }
+  ],
+  "aristas": [
+    {
+      "origen": "BOG",
+      "destino": "MDE",
+      "distanciaKm": 215,
+      "aeronaves": ["Avion Comercial"],
+      "costoBase": 1,
+      "estanciaMinima": 120,
+      "_nota": "Tramo barato inicial"
+    },
+    {
+      "origen": "MDE",
+      "destino": "PTY",
+      "distanciaKm": 530,
+      "aeronaves": ["Helice"],
+      "costoBase": 0,
+      "estanciaMinima": 180,
+      "_nota": "Ruta subsidiada para activar regla del 20%"
+    },
+    {
+      "origen": "PTY",
+      "destino": "UIO",
+      "distanciaKm": 860,
+      "aeronaves": ["Avion Regional"],
+      "costoBase": 1,
+      "estanciaMinima": 240,
+      "_nota": "Hace caer el presupuesto por debajo del 35%"
+    },
+    {
+      "origen": "UIO",
+      "destino": "LIM",
+      "distanciaKm": 1320,
+      "aeronaves": ["Avion Comercial"],
+      "costoBase": 1,
+      "estanciaMinima": 300,
+      "_nota": "Escala larga para probar alojamiento/alimentacion"
+    },
+    {
+      "origen": "LIM",
+      "destino": "CUZ",
+      "distanciaKm": 570,
+      "aeronaves": ["Helice"],
+      "costoBase": 1,
+      "estanciaMinima": 360,
+      "_nota": "Ideal para realizar trabajo y actividad opcional"
+    },
+    {
+      "origen": "CUZ",
+      "destino": "SCL",
+      "distanciaKm": 2100,
+      "aeronaves": ["Avion Comercial", "Avion Regional"],
+      "costoBase": 1,
+      "estanciaMinima": 180,
+      "_nota": "Tramo final costoso"
+    },
+
+    {
+      "origen": "BOG",
+      "destino": "UIO",
+      "distanciaKm": 730,
+      "aeronaves": ["Avion Comercial", "Helice"],
+      "costoBase": 1,
+      "estanciaMinima": 100,
+      "_nota": "Ruta alternativa mas corta"
+    },
+    {
+      "origen": "UIO",
+      "destino": "SCL",
+      "distanciaKm": 3780,
+      "aeronaves": ["Avion Comercial"],
+      "costoBase": 1,
+      "estanciaMinima": 180,
+      "_nota": "Ruta directa cara"
+    },
+    {
+      "origen": "MDE",
+      "destino": "LIM",
+      "distanciaKm": 1980,
+      "aeronaves": ["Avion Regional"],
+      "costoBase": 1,
+      "estanciaMinima": 240,
+      "_nota": "Ruta alternativa intermedia"
+    }
+  ],
+  "config": {
+    "aeronaves": {
+      "Avion Comercial": {
+        "costoKm": 0.18,
+        "tiempoKm": 0.7
+      },
+      "Avion Regional": {
+        "costoKm": 0.25,
+        "tiempoKm": 1.1
+      },
+      "Helice": {
+        "costoKm": 0.12,
+        "tiempoKm": 2.5
+      }
+    },
+    "presupuestoMinimoPorc": 35,
+    "intervaloAlojamiento": 20,
+    "intervaloAlimentacion": 8
+  },
+
+  "_casos_prueba": [
+    {
+      "nombre": "Caso 1 - Activacion de trabajos",
+      "entrada": {
+        "origen": "BOG",
+        "presupuestoInicial": 320,
+        "tiempoDisponibleHoras": 72
+      },
+      "esperado": [
+        "El presupuesto cae por debajo del 35%",
+        "El sistema ofrece trabajos en UIO o LIM",
+        "El usuario puede trabajar para continuar el viaje"
+      ]
+    },
+    {
+      "nombre": "Caso 2 - Ruta subsidiada",
+      "entrada": {
+        "origen": "BOG",
+        "presupuestoInicial": 250,
+        "tiempoDisponibleHoras": 48
+      },
+      "esperado": [
+        "Se utiliza la ruta MDE->PTY con costoBase=0",
+        "El sistema controla que no supere el 20% de la distancia total"
+      ]
+    },
+    {
+      "nombre": "Caso 3 - Actividades opcionales",
+      "entrada": {
+        "origen": "UIO",
+        "presupuestoInicial": 500,
+        "tiempoDisponibleHoras": 96
+      },
+      "esperado": [
+        "El sistema ofrece actividades opcionales en cada aeropuerto",
+        "Se registran costos y tiempos adicionales"
+      ]
+    },
+    {
+      "nombre": "Caso 4 - Alimentacion y alojamiento obligatorio",
+      "entrada": {
+        "origen": "BOG",
+        "presupuestoInicial": 600,
+        "tiempoDisponibleHoras": 120
+      },
+      "esperado": [
+        "Se cobra alimentacion cada 8 horas",
+        "Se cobra alojamiento cada 20 horas",
+        "El reporte final muestra gastos obligatorios"
+      ]
+    }
+  ]
+}
