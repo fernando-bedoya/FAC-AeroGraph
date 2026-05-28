@@ -356,6 +356,20 @@ def perform_dynamic_flight(
         raise DynamicPlanError("Ruta subsidiada excede el limite permitido")
 
     seg_time = route.distance_km * cfg.time_per_km
+
+    # Validacion previa: presupuesto duro antes de confirmar el vuelo.
+    _, _, mandatory_cost = _estimate_mandatory_costs(
+        state,
+        seg_time,
+        rules,
+        graph.get_airport(route.origin),
+    )
+    projected_budget = state.budget_usd - (seg_cost + mandatory_cost)
+    if projected_budget < 0:
+        raise DynamicPlanError(
+            "Presupuesto insuficiente por costos de alimentacion y alojamiento para completar el trayecto."
+        )
+
     _apply_cost_and_time(
         state,
         rules,

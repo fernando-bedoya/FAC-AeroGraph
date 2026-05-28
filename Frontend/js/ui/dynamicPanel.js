@@ -50,7 +50,7 @@ class DynamicPanel {
       return;
     }
 
-    this.activitiesBox.innerHTML = activities.map((activity, index) => {
+    this.activitiesBox.innerHTML = activities.map((activity) => {
       const disabled = activity.affordable ? "" : "disabled";
       const badge = activity.affordable ? "" : '<span class="dynamic-tag">Sin presupuesto</span>';
       return `
@@ -87,7 +87,6 @@ class DynamicPanel {
       return;
     }
 
-    // Agrupar opciones por destino: { "MDE": [{...}, {...}], "UIO": [{...}] }
     const groupedByDestination = {};
     options.forEach((option) => {
       if (!groupedByDestination[option.destination]) {
@@ -96,7 +95,6 @@ class DynamicPanel {
       groupedByDestination[option.destination].push(option);
     });
 
-    // Renderizar cada destino como un grupo con sus opciones de aeronaves
     this.flightsBox.innerHTML = Object.entries(groupedByDestination).map(([destination, flightOptions]) => `
       <div class="dynamic-flight-group">
         <div class="dynamic-flight-destination">${flightOptions[0].origin} → ${destination}</div>
