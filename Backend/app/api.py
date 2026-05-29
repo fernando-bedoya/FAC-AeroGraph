@@ -2,6 +2,7 @@ from pathlib import Path
 
 from fastapi import APIRouter, HTTPException
 
+from .config import app_state
 from .dynamic import (
     choose_dynamic_activities,
     end_dynamic_session,
@@ -26,7 +27,6 @@ from .schemas import (
     DynamicWorkRequest,
     LoadJsonRequest,
 )
-from .state import app_state
 
 router = APIRouter()
 
