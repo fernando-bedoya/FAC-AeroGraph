@@ -27,3 +27,5 @@ dist/
 .DS_Store
 .vscode/*
 !.vscode/settings.json
+
+package-lock.json

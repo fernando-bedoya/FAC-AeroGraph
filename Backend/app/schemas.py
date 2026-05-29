@@ -21,10 +21,6 @@ class BestRouteRequest(BaseModel):
     allowed_aircraft: List[str] = []
 
 
-class DynamicPlanRequest(BaseModel):
-    origin: str
-    initial_budget: float
-    total_time_hours: float
 
 
 class DynamicStartRequest(BaseModel):

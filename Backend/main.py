@@ -8,7 +8,7 @@ No server startup logic here — use run.py for that.
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from .api import router
+from app.api import router
 
 
 def create_app() -> FastAPI:

@@ -22,7 +22,6 @@ from .schemas import (
     BlockRouteRequest,
     DynamicActivitiesRequest,
     DynamicFlyRequest,
-    DynamicPlanRequest,
     DynamicStartRequest,
     DynamicWorkRequest,
     LoadJsonRequest,
@@ -197,28 +196,6 @@ def best_route(payload: BestRouteRequest):
         allowed_aircraft=allowed,
     )
     return result
-
-
-@router.post("/plan/dynamic")
-def dynamic_plan(payload: DynamicPlanRequest):
-    _require_graph()
-    graph = app_state.graph
-    assert graph is not None
-
-    try:
-        state = start_dynamic_session(
-            graph=graph,
-            aircraft_cfg=app_state.aircraft_cfg,
-            rules=app_state.rules,
-            origin=payload.origin,
-            initial_budget=payload.initial_budget,
-            total_time_hours=payload.total_time_hours,
-            sessions=app_state.dynamic_sessions,
-        )
-    except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
-
-    return _dynamic_state_to_dict(state)
 
 
 @router.post("/dynamic/start")

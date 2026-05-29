@@ -496,7 +496,6 @@ def _advance_time(
 
     state.minutes_since_food += duration_min
     state.minutes_since_lodging += duration_min
-    state.time_left_min -= duration_min
     if count_stay:
         state.stay_min += duration_min
 
@@ -508,32 +507,42 @@ def _advance_time(
     if lodging_interval_min > 0:
         state.minutes_since_lodging -= lodgings * lodging_interval_min
 
+    # Registrar comidas y alojamientos con tiempo progresivo
     if cost_airport:
-        for _ in range(meals):
+        for i in range(meals):
             state.budget_usd -= cost_airport.food_cost
             state.total_spent += cost_airport.food_cost
+            # Calcular tiempo restante progresivamente: restar proporcionalmente
+            time_per_event = (meals + lodgings) > 0 and duration_min / (meals + lodgings) or 0
+            progressive_time = state.time_left_min - duration_min + (i + 1) * time_per_event
             state.steps.append(
                 DynamicStep(
                     airport_id=state.current_airport,
                     action="alimentacion",
                     detail=f"Alimentacion obligatoria ({cost_airport.food_cost:.2f} USD)",
                     budget_after=state.budget_usd,
-                    time_left_min=state.time_left_min,
+                    time_left_min=progressive_time,
                 )
             )
 
-        for _ in range(lodgings):
+        for i in range(lodgings):
             state.budget_usd -= cost_airport.lodging_cost
             state.total_spent += cost_airport.lodging_cost
+            # Calcular tiempo restante progresivamente
+            time_per_event = (meals + lodgings) > 0 and duration_min / (meals + lodgings) or 0
+            progressive_time = state.time_left_min - duration_min + (meals + i + 1) * time_per_event
             state.steps.append(
                 DynamicStep(
                     airport_id=state.current_airport,
                     action="alojamiento",
                     detail=f"Alojamiento obligatorio ({cost_airport.lodging_cost:.2f} USD)",
                     budget_after=state.budget_usd,
-                    time_left_min=state.time_left_min,
+                    time_left_min=progressive_time,
                 )
             )
+
+    # Restar tiempo total DESPUÉS de registrar eventos progresivos
+    state.time_left_min -= duration_min
 
 
 def _calculate_segment_cost(route, cfg: AircraftConfig, state: DynamicState):
