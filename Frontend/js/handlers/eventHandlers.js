@@ -11,6 +11,7 @@ import { routesRenderer } from "../ui/routesRenderer.js";
 import { airportInfoPanel } from "../ui/airportPanel.js";
 import { debugRenderer } from "../ui/debugRenderer.js";
 import { dynamicPanel } from "../ui/dynamicPanel.js";
+import { animationController } from "../ui/animationController.js";
 import { MESSAGES } from "../constants/config.js";
 
 export class EventHandlers {
@@ -35,6 +36,7 @@ export class EventHandlers {
       
       this._fillAirportSelectors(graphData.airports);
       graphRenderer.render(graphData, (airport) => this.handleAirportClick(airport));
+      animationController.initialize();
       routesRenderer.displayEmpty(MESSAGES.INFO.INITIAL);
       debugRenderer.displayJSON({
         message: "✅ Red cargada correctamente",
@@ -282,28 +284,6 @@ export class EventHandlers {
   }
 
   /**
-   * Registra vuelo seleccionado
-   */
-  async handleDynamicFly(event) {
-    event?.preventDefault();
-
-    try {
-      const flight = this._getSelectedFlight();
-      if (!flight) {
-        routesRenderer.displayError("❌ Selecciona un vuelo disponible");
-        return;
-      }
-
-      const state = await dynamicPlanService.fly(flight.destination, flight.aircraft);
-      await this._refreshDynamicPanel(state);
-      debugRenderer.displayJSON(state);
-    } catch (error) {
-      routesRenderer.displayError(`⚠️ ${error.message}`);
-      debugRenderer.displayError(error);
-    }
-  }
-
-  /**
    * Finaliza la sesion dinamica
    */
   async handleDynamicFinish(event) {
@@ -436,5 +416,39 @@ export class EventHandlers {
     return Array.from(this.refs.aircraftCheckboxes)
       .filter(checkbox => checkbox.checked)
       .map(checkbox => checkbox.value);
+  }
+
+  async handleDynamicFly(event) {
+    event?.preventDefault();
+
+    try {
+      const flight = this._getSelectedFlight();
+      if (!flight) {
+        routesRenderer.displayError("Selecciona un vuelo disponible");
+        return;
+      }
+
+    // 1. Obtener el origen actual antes de volar (para la animación)
+      const currentOrigin = dynamicPlanService.state.current_airport || this.refs.originDynamic.value;
+
+    // 2. Llamar al servicio para registrar el vuelo en el backend
+    // Asumiendo que tu API te devuelve la estimación de tiempo (ej: result.estimated_time_min)
+      const result = await dynamicPlanService.fly(flight.destination, flight.aircraft);
+    
+      const flightTimeMinutes = result.estimated_time_min || 10; // fallback por si acaso
+      const animationDuration = flightTimeMinutes * 100;
+
+    // 3. SE DISPARA LA ANIMACIÓN: Bloqueamos la ejecución visual hasta que el avion llegue
+      routesRenderer.displayEmpty("✈️ Vuelo en progreso...");
+      await animationController.fly(currentOrigin, flight.destination, animationDuration);
+
+    // 4. Termina la animación, refrescamos toda la interfaz con el nuevo estado
+      await this._refreshDynamicPanel(result);
+      debugRenderer.displayJSON(result);
+
+    } catch (error) {
+      routesRenderer.displayError(`⚠️ ${error.message}`);
+      debugRenderer.displayError(error);
+    }
   }
 }

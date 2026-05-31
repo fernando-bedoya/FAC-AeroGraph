@@ -1,6 +1,7 @@
 from pathlib import Path
 
 from fastapi import APIRouter, HTTPException
+from fastapi.responses import JSONResponse
 
 from .config import app_state
 from .dynamic import (
@@ -54,6 +55,99 @@ def _dynamic_state_to_dict(state):
         "free_distance_km": state.free_distance_km,
         "steps": [s.__dict__ for s in state.steps],
         "suggested_route": state.suggested_route,
+    }
+
+
+# --- REAL-TIME SIMULATION ENGINE ENDPOINTS (R4) ---
+
+@router.post("/simulation/fly")
+def fly(origin: str, destination: str, plan_id: str):
+    """
+    Endpoint para iniciar una transición de vuelo.
+    Valida que la ruta sea posible antes de que el frontend inicie la animación.
+    """
+    _require_graph()
+    graph = app_state.graph
+    assert graph is not None
+
+    if not graph.is_route_valid(origin, destination):
+        return JSONResponse(
+            status_code=409,
+            content={
+                "error": "Route is blocked or does not exist.",
+                "from": origin,
+                "to": destination
+            }
+        )
+
+    route = graph.get_route(origin, destination)
+    if not route:
+        return JSONResponse(status_code=404, content={"error": "Route not found"})
+
+    # Aquí podrías tener una lógica más compleja para calcular el tiempo real
+    # basado en la aeronave, pero por ahora usamos una aproximación.
+    # Suponemos que planner tiene una configuración de aeronave por defecto.
+    planner = app_state.planner
+    assert planner is not None
+    aircraft = planner.get_default_aircraft()
+    segment_time = planner.calculate_segment_time(route.distance_km, aircraft)
+
+    return {
+        "message": "Flight approved. You can start the animation.",
+        "estimated_time_min": segment_time
+    }
+
+
+@router.post("/simulation/arrive")
+def arrive(destination: str, plan_id: str):
+    """
+    Endpoint para confirmar la llegada a un destino.
+    El frontend llama a esto cuando la animación de vuelo ha concluido.
+    """
+    # Aquí es donde actualizas el estado de la simulación.
+    # Por ahora, simplemente confirmamos la llegada.
+    # La lógica del DynamicEngine se activaría aquí para aplicar costos, etc.
+    
+    # sim_state = active_simulations.get(plan_id)
+    # if not sim_state:
+    #     return jsonify({"error": "Simulation plan not found."}), 404
+    #
+    # engine = DynamicEngine(graph, planner, sim_state)
+    # new_state = engine.advance_to(destination)
+    # active_simulations[plan_id] = new_state
+
+    return {
+        "message": f"Arrival at {destination} confirmed.",
+        # "newState": new_state.to_dict() # Devolverías el estado actualizado
+    }
+
+
+@router.post("/simulation/interrupt")
+def interrupt(origin: str, destination: str, plan_id: str):
+    """
+    Endpoint para gestionar una interrupción en pleno vuelo.
+    El frontend notifica al backend que la ruta se ha vuelto intransitable.
+    """
+    _require_graph()
+    graph = app_state.graph
+    assert graph is not None
+    # 1. Bloquear la ruta en el grafo del backend
+    updated_route = graph.toggle_route_status(origin, destination, block=True)
+
+    if not updated_route:
+        raise HTTPException(status_code=404, detail="Route to interrupt not found.")
+
+    # 2. Registrar el evento (opcional, pero bueno para debugging)
+    print(f"INTERRUPTION: Route from {origin} to {destination} for plan {plan_id} was blocked.")
+
+    # 3. Confirmar al frontend que la interrupción ha sido procesada.
+    # El frontend ahora es responsable de animar el regreso y recalcular.
+    return {
+        "message": "Interruption acknowledged. Route is now blocked.",
+        "blocked_route": {
+            "from": origin,
+            "to": destination
+        }
     }
 
 
@@ -349,13 +443,13 @@ def block_route(payload: BlockRouteRequest):
     graph = app_state.graph
     assert graph is not None
 
-    ok = graph.set_route_blocked(payload.origin, payload.destination, payload.blocked)
-    if not ok:
+    route = graph.toggle_route_status(payload.origin, payload.destination, payload.blocked)
+    if route is None:
         raise HTTPException(status_code=404, detail="No existe la ruta indicada")
 
     return {
         "message": "Ruta actualizada",
         "origin": payload.origin,
         "destination": payload.destination,
-        "blocked": payload.blocked,
+        "blocked": route.blocked,
     }

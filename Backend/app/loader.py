@@ -1,7 +1,7 @@
 import json
 from typing import Dict, Tuple
 
-from .graph import DirectedGraph
+from .graph import Graph
 from .models import (
     Activity,
     Airport,
@@ -23,11 +23,11 @@ def _normalize_aircraft_name(name: str) -> str:
     return normalized
 
 
-def load_graph_from_json(path: str) -> Tuple[DirectedGraph, Dict[str, AircraftConfig], Dict[str, float]]:
+def load_graph_from_json(path: str) -> Tuple[Graph, Dict[str, AircraftConfig], Dict[str, float]]:
     with open(path, "r", encoding="utf-8") as file:
         raw = json.load(file)
 
-    graph = DirectedGraph()
+    graph = Graph()
 
     for node in raw.get("nodos", []):
         activities = [

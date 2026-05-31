@@ -2,7 +2,7 @@ import heapq
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Set, Tuple
 
-from .graph import DirectedGraph
+from .graph import Graph
 from .models import AircraftConfig, TravelSegment
 
 
@@ -215,7 +215,7 @@ def _inicializar_estado_cobertura(origin: str) -> CoverageState:
 
 
 def _relajar_aristas_cobertura(
-    graph: DirectedGraph,
+    graph: Graph,
     aircraft_cfg: Dict[str, AircraftConfig],
     states: List[CoverageState],
     optimize_for: str,
@@ -358,7 +358,7 @@ def _seleccionar_mejor_cobertura(states: List[CoverageState]) -> List[TravelSegm
 
 
 def bellman_ford_max_coverage(
-    graph: DirectedGraph,
+    graph: Graph,
     aircraft_cfg: Dict[str, AircraftConfig],
     origin: str,
     budget_limit: float,

@@ -1,7 +1,7 @@
 from typing import Dict, List, Set
 
 from .algorithms import dijkstra_path, bellman_ford_max_coverage
-from .graph import DirectedGraph
+from .graph import Graph
 from .models import AircraftConfig, DynamicPlan, DynamicStep, TravelPlan
 
 
@@ -14,7 +14,7 @@ def _sum_time(segments) -> float:
 
 
 def plan_basic_itinerary(
-    graph: DirectedGraph,
+    graph: Graph,
     aircraft_cfg: Dict[str, AircraftConfig],
     origin: str,
     budget_usd: float,
@@ -65,7 +65,7 @@ def plan_basic_itinerary(
 
 
 def plan_best_route_by_criteria(
-    graph: DirectedGraph,
+    graph: Graph,
     aircraft_cfg: Dict[str, AircraftConfig],
     origin: str,
     destination: str,

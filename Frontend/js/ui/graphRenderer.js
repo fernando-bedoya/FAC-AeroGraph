@@ -283,6 +283,13 @@ class GraphRenderer {
       return d3.drag().on("start", dragstarted).on("drag", dragged).on("end", dragended);
     };
   }
+
+  /**
+   * Retorna el elemento SVG para acceso externo (ej: animación)
+   */
+  getSvg() {
+    return this.svg;
+  }
 }
 
 export const graphRenderer = new GraphRenderer();

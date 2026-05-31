@@ -2,7 +2,7 @@ import uuid
 from typing import Dict, List, Optional, Tuple
 
 from ..algorithms import bellman_ford_max_coverage
-from ..graph import DirectedGraph
+from ..graph import Graph
 from ..models import AircraftConfig, DynamicStep
 from .models import DynamicState
 
@@ -12,7 +12,7 @@ class DynamicPlanError(ValueError):
 
 
 def _calculate_suggested_route(
-    graph: DirectedGraph,
+    graph: Graph,
     aircraft_cfg: Dict[str, AircraftConfig],
     origin: str,
     initial_budget: float,
@@ -86,7 +86,7 @@ def _calculate_suggested_route(
 
 
 def start_dynamic_session(
-    graph: DirectedGraph,
+    graph: Graph,
     aircraft_cfg: Dict[str, AircraftConfig],
     rules: Dict[str, float],
     origin: str,
@@ -144,7 +144,7 @@ def get_dynamic_state(session_id: str, sessions: Dict[str, DynamicState]) -> Dyn
 
 
 def list_dynamic_activities(
-    graph: DirectedGraph,
+    graph: Graph,
     rules: Dict[str, float],
     state: DynamicState,
 ) -> List[Dict[str, float]]:
@@ -177,7 +177,7 @@ def list_dynamic_activities(
 
 
 def choose_dynamic_activities(
-    graph: DirectedGraph,
+    graph: Graph,
     rules: Dict[str, float],
     state: DynamicState,
     activity_names: List[str],
@@ -210,7 +210,7 @@ def choose_dynamic_activities(
 
 
 def list_dynamic_jobs(
-    graph: DirectedGraph,
+    graph: Graph,
     rules: Dict[str, float],
     state: DynamicState,
 ) -> List[Dict[str, float]]:
@@ -232,7 +232,7 @@ def list_dynamic_jobs(
 
 
 def perform_dynamic_work(
-    graph: DirectedGraph,
+    graph: Graph,
     rules: Dict[str, float],
     state: DynamicState,
     job_name: str,
@@ -280,7 +280,7 @@ def perform_dynamic_work(
 
 
 def list_dynamic_flight_options(
-    graph: DirectedGraph,
+    graph: Graph,
     aircraft_cfg: Dict[str, AircraftConfig],
     state: DynamicState,
 ) -> List[Dict[str, float]]:
@@ -317,7 +317,7 @@ def list_dynamic_flight_options(
 
 
 def perform_dynamic_flight(
-    graph: DirectedGraph,
+    graph: Graph,
     aircraft_cfg: Dict[str, AircraftConfig],
     rules: Dict[str, float],
     state: DynamicState,
@@ -564,7 +564,7 @@ def _calculate_segment_cost(route, cfg: AircraftConfig, state: DynamicState):
     return 0.0
 
 
-def _find_route(graph: DirectedGraph, origin: str, destination: str):
+def _find_route(graph: Graph, origin: str, destination: str):
     for route in graph.get_outgoing_routes(origin):
         if route.destination == destination:
             return route

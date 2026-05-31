@@ -9,7 +9,7 @@ import os
 from pathlib import Path
 from typing import Dict, Optional, Tuple
 
-from .graph import DirectedGraph
+from .graph import Graph
 from .loader import load_graph_from_json
 from .models import AircraftConfig
 
@@ -18,7 +18,7 @@ class AppConfig:
     """Manages application configuration state."""
     
     def __init__(self):
-        self.graph: Optional[DirectedGraph] = None
+        self.graph: Optional[Graph] = None
         self.aircraft_cfg: Dict[str, AircraftConfig] = {}
         self.rules: Dict[str, float] = {}
         self.loaded_file: Optional[str] = None

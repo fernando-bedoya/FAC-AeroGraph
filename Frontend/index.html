@@ -172,10 +172,76 @@
         <h3>Historial</h3>
         <div id="dynamicSteps" class="dynamic-steps"></div>
       </div>
+
+      <h2>Bucle de Simulación</h2>
+      <button id="btnSimulationLoop">Abrir simulador</button>
+
       <h2>JSON (DEBUG)</h2>
       <pre id="output"></pre>
     </aside>
   </main>
+
+  <!-- Modal: Bucle de Simulación -->
+  <div id="simulationModal" class="modal-overlay" style="display: none;">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h2>Bucle de Simulación</h2>
+        <button class="modal-close" id="btnCloseSimulation" aria-label="Cerrar modal">✕</button>
+      </div>
+      
+      <div class="modal-content">
+        <!-- Selección de vuelo -->
+        <section class="modal-section">
+          <h3>Selecciona un vuelo</h3>
+          <div id="simulationFlights" class="flights-list"></div>
+        </section>
+
+        <!-- Controles de simulación -->
+        <section class="modal-section">
+          <div class="simulation-controls">
+            <button id="btnStartSimulation" class="primary">Iniciar simulación</button>
+            <button id="btnPauseSimulation" class="ghost" style="display: none;">Pausar</button>
+            <button id="btnResumeSimulation" class="ghost" style="display: none;">Reanudar</button>
+          </div>
+        </section>
+
+        <!-- Progreso de simulación -->
+        <section class="modal-section" id="simulationProgress" style="display: none;">
+          <h3>Progreso</h3>
+          <div class="progress-info">
+            <div class="progress-item">
+              <label>Origen:</label>
+              <span id="simOrigin">-</span>
+            </div>
+            <div class="progress-item">
+              <label>Destino:</label>
+              <span id="simDestination">-</span>
+            </div>
+            <div class="progress-item">
+              <label>Posición:</label>
+              <span id="simPosition">0%</span>
+            </div>
+            <div class="progress-item">
+              <label>Tiempo restante:</label>
+              <span id="simTimeRemaining">-</span>
+            </div>
+          </div>
+          
+          <!-- Barra de progreso visual -->
+          <div class="progress-bar">
+            <div id="progressBarFill" class="progress-fill"></div>
+          </div>
+        </section>
+
+        <!-- Opciones durante simulación -->
+        <section class="modal-section" id="simulationOptions" style="display: none;">
+          <h3>Acciones</h3>
+          <button id="btnBlockRouteDuringSimulation" class="warning">Bloquear ruta actual</button>
+          <p id="blockMessage" class="info-message" style="display: none;"></p>
+        </section>
+      </div>
+    </div>
+  </div>
 
   <!-- Carga el módulo principal de la aplicación -->
   <script type="module" src="app.js"></script>

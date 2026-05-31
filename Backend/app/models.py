@@ -86,6 +86,17 @@ class DynamicPlan:
     final_budget: float
 
 
+@dataclass
+class Edge:
+    u: str
+    v: str
+    distance: float
+    is_active: bool = True
+
+    def to_dict(self):
+        return {"u": self.u, "v": self.v, "distance": self.distance, "is_active": self.is_active}
+
+
 DEFAULT_AIRCRAFT: Dict[str, AircraftConfig] = {
     "Avion Comercial": AircraftConfig("Avion Comercial", 0.18, 0.7),
     "Avion Regional": AircraftConfig("Avion Regional", 0.25, 1.1),

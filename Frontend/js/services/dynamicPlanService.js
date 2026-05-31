@@ -4,6 +4,7 @@
  */
 
 import { apiClient } from "../api/client.js";
+import { animationController } from '../ui/animationController.js';
 
 class DynamicPlanService {
   constructor() {
@@ -86,6 +87,14 @@ class DynamicPlanService {
     await apiClient.dynamicFinish(this.sessionId);
     this.sessionId = null;
     this.state = null;
+  }
+
+  async blockRoute(origin, destination) {
+    /**
+     * Bloquea una ruta durante la simulación
+     * Puede causar que viajeros en tránsito sean redirigidos al aeropuerto de origen
+     */
+    return await apiClient.blockRoute(origin, destination, true);
   }
 }
 
