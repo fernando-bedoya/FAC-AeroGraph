@@ -256,7 +256,7 @@ def perform_dynamic_work(
         raise DynamicPlanError("Horas exceden el maximo permitido")
 
     duration_min = hours * 60
-    _apply_time_only(
+    time_left_after_work, mandatory_events = _apply_time_only(
         state,
         rules,
         duration_min=duration_min,
@@ -273,9 +273,10 @@ def perform_dynamic_work(
             action="trabajo",
             detail=f"Trabajo: {job.name} por {hours}h, ingreso {earned:.2f} USD",
             budget_after=state.budget_usd,
-            time_left_min=state.time_left_min,
+            time_left_min=time_left_after_work,
         )
     )
+    _apply_mandatory_events(state, airport, mandatory_events, time_left_after_work)
     return state
 
 
@@ -412,7 +413,9 @@ def _apply_cost_and_time(
 
     state.budget_usd -= cost_usd
     state.total_spent += cost_usd
-    _advance_time(state, rules, duration_min, cost_airport, count_stay)
+    time_left_after_action, mandatory_events = _advance_time(
+        state, rules, duration_min, cost_airport, count_stay
+    )
 
     step_airport = step_airport_id or state.current_airport
     state.steps.append(
@@ -421,9 +424,11 @@ def _apply_cost_and_time(
             action=action_label,
             detail=detail,
             budget_after=state.budget_usd,
-            time_left_min=state.time_left_min,
+            time_left_min=time_left_after_action,
         )
     )
+
+    _apply_mandatory_events(state, cost_airport, mandatory_events, time_left_after_action)
 
 
 def _apply_time_only(
@@ -432,9 +437,33 @@ def _apply_time_only(
     duration_min: float,
     cost_airport,
     count_stay: bool,
-) -> None:
+) -> Tuple[float, List[Dict[str, float]]]:
     _validate_action(state, rules, duration_min, 0.0, cost_airport)
-    _advance_time(state, rules, duration_min, cost_airport, count_stay)
+    return _advance_time(state, rules, duration_min, cost_airport, count_stay)
+
+
+def _apply_mandatory_events(
+    state: DynamicState,
+    cost_airport,
+    mandatory_events: List[Dict[str, float]],
+    time_left_after_action: float,
+) -> None:
+    if not cost_airport:
+        return
+
+    for event in mandatory_events:
+        event_cost = event["cost"]
+        state.budget_usd -= event_cost
+        state.total_spent += event_cost
+        state.steps.append(
+            DynamicStep(
+                airport_id=state.current_airport,
+                action=event["action"],
+                detail=event["detail"],
+                budget_after=state.budget_usd,
+                time_left_min=time_left_after_action,
+            )
+        )
 
 
 def _validate_action(
@@ -490,7 +519,7 @@ def _advance_time(
     duration_min: float,
     cost_airport,
     count_stay: bool,
-) -> None:
+) -> Tuple[float, List[Dict[str, float]]]:
     food_interval_min = rules.get("food_interval_h", 8) * 60
     lodging_interval_min = rules.get("lodging_interval_h", 20) * 60
 
@@ -507,42 +536,29 @@ def _advance_time(
     if lodging_interval_min > 0:
         state.minutes_since_lodging -= lodgings * lodging_interval_min
 
-    # Registrar comidas y alojamientos con tiempo progresivo
+    mandatory_events: List[Dict[str, float]] = []
     if cost_airport:
-        for i in range(meals):
-            state.budget_usd -= cost_airport.food_cost
-            state.total_spent += cost_airport.food_cost
-            # Calcular tiempo restante progresivamente: restar proporcionalmente
-            time_per_event = (meals + lodgings) > 0 and duration_min / (meals + lodgings) or 0
-            progressive_time = state.time_left_min - duration_min + (i + 1) * time_per_event
-            state.steps.append(
-                DynamicStep(
-                    airport_id=state.current_airport,
-                    action="alimentacion",
-                    detail=f"Alimentacion obligatoria ({cost_airport.food_cost:.2f} USD)",
-                    budget_after=state.budget_usd,
-                    time_left_min=progressive_time,
-                )
+        for _ in range(meals):
+            mandatory_events.append(
+                {
+                    "action": "alimentacion",
+                    "detail": f"Alimentacion obligatoria ({cost_airport.food_cost:.2f} USD)",
+                    "cost": cost_airport.food_cost,
+                }
             )
 
-        for i in range(lodgings):
-            state.budget_usd -= cost_airport.lodging_cost
-            state.total_spent += cost_airport.lodging_cost
-            # Calcular tiempo restante progresivamente
-            time_per_event = (meals + lodgings) > 0 and duration_min / (meals + lodgings) or 0
-            progressive_time = state.time_left_min - duration_min + (meals + i + 1) * time_per_event
-            state.steps.append(
-                DynamicStep(
-                    airport_id=state.current_airport,
-                    action="alojamiento",
-                    detail=f"Alojamiento obligatorio ({cost_airport.lodging_cost:.2f} USD)",
-                    budget_after=state.budget_usd,
-                    time_left_min=progressive_time,
-                )
+        for _ in range(lodgings):
+            mandatory_events.append(
+                {
+                    "action": "alojamiento",
+                    "detail": f"Alojamiento obligatorio ({cost_airport.lodging_cost:.2f} USD)",
+                    "cost": cost_airport.lodging_cost,
+                }
             )
 
-    # Restar tiempo total DESPUÉS de registrar eventos progresivos
+    # Restar tiempo total de la accion
     state.time_left_min -= duration_min
+    return state.time_left_min, mandatory_events
 
 
 def _calculate_segment_cost(route, cfg: AircraftConfig, state: DynamicState):
