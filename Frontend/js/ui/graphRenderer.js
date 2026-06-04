@@ -148,12 +148,19 @@ class GraphRenderer {
     this.svg
       .append("g")
       .attr("stroke-opacity", 0.9)
-      .selectAll("line")
+      .selectAll("path.route-link")
       .data(links)
-      .join("line")
+      .join("path")
+      .attr("class", "route-link")
+      .attr("id", (d) => {
+        const originId = typeof d.source === "object" ? d.source.id : d.source;
+        const destId = typeof d.target === "object" ? d.target.id : d.target;
+        return `route-path-${originId}-${destId}`;
+      })
       .attr("stroke", (d) => (d.blocked ? COLORS.ARROW_BLOCKED : COLORS.ARROW))
       .attr("stroke-width", (d) => (d.blocked ? 2.8 : 1.8))
       .attr("stroke-dasharray", (d) => (d.blocked ? "6 3" : "0"))
+      .attr("fill", "none")
       .attr("marker-end", (d) => (d.blocked ? "url(#arrow-blocked)" : "url(#arrow)"));
   }
 
@@ -187,6 +194,8 @@ class GraphRenderer {
       .selectAll("circle")
       .data(nodes)
       .join("circle")
+      .attr("id", (d) => `node-circle-${d.id}`)
+      .attr("data-id", (d) => d.id)
       .attr("r", (d) => (d.isHub ? CONFIG.UI.GRAPH.NODE_HUB_RADIUS : CONFIG.UI.GRAPH.NODE_REGULAR_RADIUS))
       .attr("fill", (d) => (d.isHub ? COLORS.HUB : COLORS.NODE))
       .attr("stroke", "#12354d")
@@ -221,18 +230,20 @@ class GraphRenderer {
    * @private
    */
   _setupTickHandlers() {
-    const links = this.svg.selectAll("line");
+    const links = this.svg.selectAll("path.route-link");
     const circles = this.svg.selectAll("circle");
     const linkLabels = this.linkLabels;
     const nodeLabels = this.nodeLabels;
 
     this.simulation.on("tick", () => {
       // Actualizar enlaces
-      links
-        .attr("x1", (d) => d.source.x)
-        .attr("y1", (d) => d.source.y)
-        .attr("x2", (d) => d.target.x)
-        .attr("y2", (d) => d.target.y);
+      links.attr("d", (d) => {
+        const x1 = d.source.x !== undefined ? d.source.x : 0;
+        const y1 = d.source.y !== undefined ? d.source.y : 0;
+        const x2 = d.target.x !== undefined ? d.target.x : 0;
+        const y2 = d.target.y !== undefined ? d.target.y : 0;
+        return `M${x1},${y1}L${x2},${y2}`;
+      });
 
       // Actualizar nodos
       circles

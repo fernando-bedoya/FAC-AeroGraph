@@ -5,13 +5,14 @@ from ..algorithms import bellman_ford_max_coverage
 from ..graph import Graph
 from ..models import AircraftConfig, DynamicStep
 from .models import DynamicState
+from .interruption import mark_in_transit, clear_transit
 
 
 class DynamicPlanError(ValueError):
     pass
 
 
-def _calculate_suggested_route(
+def calculate_suggested_route(
     graph: Graph,
     aircraft_cfg: Dict[str, AircraftConfig],
     origin: str,
@@ -101,7 +102,7 @@ def start_dynamic_session(
     total_time_min = total_time_hours * 60
     
     # Calcular la ruta sugerida
-    suggested_route = _calculate_suggested_route(
+    suggested_route = calculate_suggested_route(
         graph=graph,
         aircraft_cfg=aircraft_cfg,
         origin=origin,
@@ -371,6 +372,9 @@ def perform_dynamic_flight(
             "Presupuesto insuficiente por costos de alimentacion y alojamiento para completar el trayecto."
         )
 
+    # Marcar al viajero como en tránsito antes de iniciar el vuelo
+    mark_in_transit(state, state.current_airport, destination, aircraft)
+
     _apply_cost_and_time(
         state,
         rules,
@@ -394,6 +398,116 @@ def perform_dynamic_flight(
     state.visited.append(destination)
     state.stay_min = 0.0
     state.required_stay_min = float(route.min_stay_min)
+
+    # Limpiar estado de tránsito al completar el vuelo
+    clear_transit(state)
+
+    return state
+
+
+def start_dynamic_flight(
+    graph: Graph,
+    aircraft_cfg: Dict[str, AircraftConfig],
+    rules: Dict[str, float],
+    state: DynamicState,
+    destination: str,
+    aircraft: str,
+) -> DynamicState:
+    route = _find_route(graph, state.current_airport, destination)
+    if not route:
+        raise DynamicPlanError("Ruta no encontrada")
+    if route.blocked:
+        raise DynamicPlanError("Ruta bloqueada")
+    if destination in state.visited:
+        raise DynamicPlanError("No se permite visitar el mismo aeropuerto dos veces")
+    if aircraft not in route.aircraft_types:
+        raise DynamicPlanError("Aeronave no disponible en la ruta")
+
+    cfg = aircraft_cfg.get(aircraft)
+    if not cfg:
+        raise DynamicPlanError("Configuracion de aeronave no encontrada")
+
+    if state.stay_min < state.required_stay_min:
+        idle_min = state.required_stay_min - state.stay_min
+        _apply_cost_and_time(
+            state,
+            rules,
+            cost_usd=0.0,
+            duration_min=idle_min,
+            cost_airport=graph.get_airport(state.current_airport),
+            count_stay=True,
+            action_label="tiempo_libre",
+            detail=f"Tiempo libre para cumplir estancia minima ({idle_min:.0f} min)",
+        )
+
+    seg_cost = _calculate_segment_cost(route, cfg, state)
+    if seg_cost is None:
+        raise DynamicPlanError("Ruta subsidiada excede el limite permitido")
+
+    seg_time = route.distance_km * cfg.time_per_km
+
+    # Validacion previa: presupuesto duro antes de confirmar el vuelo.
+    _, _, mandatory_cost = _estimate_mandatory_costs(
+        state,
+        seg_time,
+        rules,
+        graph.get_airport(route.origin),
+    )
+    projected_budget = state.budget_usd - (seg_cost + mandatory_cost)
+    if projected_budget < 0:
+        raise DynamicPlanError(
+            "Presupuesto insuficiente por costos de alimentacion y alojamiento para completar el trayecto."
+        )
+
+    # Marcar al viajero como en tránsito antes de iniciar el vuelo
+    mark_in_transit(state, state.current_airport, destination, aircraft)
+    return state
+
+
+def complete_dynamic_flight(
+    graph: Graph,
+    aircraft_cfg: Dict[str, AircraftConfig],
+    rules: Dict[str, float],
+    state: DynamicState,
+) -> DynamicState:
+    if not state.in_transit:
+        raise DynamicPlanError("El viajero no está en tránsito")
+
+    origin = state.transit_from
+    destination = state.transit_to
+    aircraft = state.transit_aircraft
+
+    route = _find_route(graph, origin, destination)
+    cfg = aircraft_cfg.get(aircraft)
+    seg_cost = _calculate_segment_cost(route, cfg, state)
+    seg_time = route.distance_km * cfg.time_per_km
+
+    _apply_cost_and_time(
+        state,
+        rules,
+        cost_usd=seg_cost,
+        duration_min=seg_time,
+        cost_airport=graph.get_airport(origin),
+        count_stay=False,
+        action_label="vuelo",
+        detail=(
+            f"Vuelo {origin}->{destination} en {aircraft}, "
+            f"costo {seg_cost:.2f} USD, tiempo {seg_time:.1f} min"
+        ),
+        step_airport_id=destination,
+    )
+
+    state.total_distance_km += route.distance_km
+    if route.base_cost == 0:
+        state.free_distance_km += route.distance_km
+
+    state.current_airport = destination
+    state.visited.append(destination)
+    state.stay_min = 0.0
+    state.required_stay_min = float(route.min_stay_min)
+
+    # Limpiar estado de tránsito al completar el vuelo
+    clear_transit(state)
 
     return state
 

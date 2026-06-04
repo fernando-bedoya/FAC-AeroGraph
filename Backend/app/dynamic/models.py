@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 
 from ..models import DynamicStep
 
@@ -23,3 +23,8 @@ class DynamicState:
     total_distance_km: float = 0.0
     free_distance_km: float = 0.0
     suggested_route: Dict[str, Any] = field(default_factory=dict)  # Ruta óptima sugerida: {airports, total_cost, total_time_min}
+    # --- Campos de estado en tránsito (R2.4: Interrupciones) ---
+    in_transit: bool = False
+    transit_from: Optional[str] = None
+    transit_to: Optional[str] = None
+    transit_aircraft: Optional[str] = None

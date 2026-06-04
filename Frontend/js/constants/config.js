@@ -19,7 +19,10 @@ export const CONFIG = {
       DYNAMIC_WORK: "/dynamic/work",
       DYNAMIC_FLIGHT_OPTIONS: "/dynamic/flight-options",
       DYNAMIC_FLY: "/dynamic/fly",
+      DYNAMIC_FLY_START: "/dynamic/fly/start",
+      DYNAMIC_FLY_ARRIVE: "/dynamic/fly/arrive",
       DYNAMIC_FINISH: "/dynamic/finish",
+      SIMULATION_INTERRUPT: "/simulation/interrupt",
     },
   },
   UI: {

@@ -47,3 +47,9 @@ class BlockRouteRequest(BaseModel):
     origin: str
     destination: str
     blocked: bool
+
+
+class InterruptRequest(BaseModel):
+    origin: str
+    destination: str
+    session_id: str

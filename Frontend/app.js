@@ -26,12 +26,12 @@ import { routesRenderer } from "./js/ui/routesRenderer.js";
 import { airportInfoPanel } from "./js/ui/airportPanel.js";
 import { debugRenderer } from "./js/ui/debugRenderer.js";
 import { dynamicPanel } from "./js/ui/dynamicPanel.js";
-import { SimulationController } from "./js/ui/simulationController.js";
 import { generateFaviconFromCollage, initSplashScreen } from "./js/utils/uiUtils.js";
 import { MESSAGES } from "./js/constants/config.js";
 import { animationController } from './js/ui/animationController.js';
 import { dynamicPlanService } from "./js/services/dynamicPlanService.js";
 import { routeService } from "./js/services/routeService.js";
+import { graphService } from "./js/services/graphService.js";
 /**
  * Referencias a elementos del DOM
  * Centralizadas para fácil referencia
@@ -123,14 +123,22 @@ document.addEventListener("DOMContentLoaded", () => {
   routesRenderer.displayEmpty(MESSAGES.INFO.INITIAL);
   dynamicPanel.showEmpty("Inicia una sesion para ver el estado.");
 
-  // 5. Inicializar modal de simulación
-  const simulationController = new SimulationController();
-  const appState = {
-    get dynamicSession() {
-      return dynamicPlanService.state;
+  // 5. El modal de simulación antiguo ha sido integrado nativamente.
+
+  // 6. Escuchar cambios de estado dinámico para actualizar toda la UI
+  window.addEventListener("dynamic:state-changed", async (e) => {
+    const state = e.detail;
+    if (state) {
+      await eventHandlers._refreshDynamicPanel(state);
+      
+      // Volver a dibujar el grafo para reflejar rutas bloqueadas en rojo
+      const graphData = graphService.getGraphData();
+      if (graphData) {
+        graphRenderer.render(graphData, (airport) => eventHandlers.handleAirportClick(airport));
+        animationController.initialize();
+      }
     }
-  };
-  simulationController.setDependencies(dynamicPlanService, animationController, appState);
+  });
 });
 
 /**

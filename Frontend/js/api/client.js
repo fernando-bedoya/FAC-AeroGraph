@@ -175,6 +175,34 @@ class ApiClient {
   }
 
   /**
+   * Inicia vuelo dinámico (R2.4)
+   */
+  async dynamicFlyStart(sessionId, destination, aircraft) {
+    return this.post(`${CONFIG.API.ENDPOINTS.DYNAMIC_FLY_START}/${sessionId}`, {
+      destination,
+      aircraft,
+    });
+  }
+
+  /**
+   * Finaliza/confirma llegada de vuelo dinámico (R2.4)
+   */
+  async dynamicFlyArrive(sessionId) {
+    return this.post(`${CONFIG.API.ENDPOINTS.DYNAMIC_FLY_ARRIVE}/${sessionId}`, {});
+  }
+
+  /**
+   * Interrumpe una ruta durante el vuelo del viajero (R2.4)
+   */
+  async simulationInterrupt(sessionId, origin, destination) {
+    return this.post(CONFIG.API.ENDPOINTS.SIMULATION_INTERRUPT, {
+      session_id: sessionId,
+      origin,
+      destination,
+    });
+  }
+
+  /**
    * Finaliza sesion dinamica
    */
   async dynamicFinish(sessionId) {

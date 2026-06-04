@@ -7,6 +7,9 @@ let flightDurationMs;
 let currentPathNode;
 let planeElement;
 let onFlightCompleteCallback;
+let onFlightProgressCallback;
+let isPaused = false;
+let pauseTimeStart = 0;
 
 /**
  * El bucle principal de la simulación de vuelo.
@@ -14,6 +17,8 @@ let onFlightCompleteCallback;
  * @param {DOMHighResTimeStamp} timestamp - Proporcionado por requestAnimationFrame.
  */
 function simulationLoop(timestamp) {
+    if (isPaused) return;
+
     if (!flightStartTime) {
         flightStartTime = timestamp;
     }
@@ -22,6 +27,10 @@ function simulationLoop(timestamp) {
     const progress = Math.min(elapsedTime / flightDurationMs, 1); // Progreso de 0.0 a 1.0
 
     updatePlanePosition(progress);
+
+    if (onFlightProgressCallback) {
+        onFlightProgressCallback(progress);
+    }
 
     if (progress < 1) {
         animationFrameId = requestAnimationFrame(simulationLoop);
@@ -71,9 +80,10 @@ function initialize() {
  * @param {string} originId - ID del aeropuerto de origen (ej: 'BOG').
  * @param {string} destinationId - ID del aeropuerto de destino (ej: 'MIA').
  * @param {number} durationMs - Duración de la animación en milisegundos.
+ * @param {function} onProgressCallback - Callback opcional para reportar el progreso (0.0 a 1.0).
  * @returns {Promise<void>} - Una promesa que se resuelve cuando el vuelo termina.
  */
-function fly(originId, destinationId, durationMs) {
+function fly(originId, destinationId, durationMs, onProgressCallback) {
     return new Promise((resolve) => {
         const svg = graphRenderer.getSvg();
         if (!svg) {
@@ -136,6 +146,9 @@ function fly(originId, destinationId, durationMs) {
         flightDurationMs = durationMs;
         flightStartTime = null;
         onFlightCompleteCallback = resolve;
+        onFlightProgressCallback = onProgressCallback;
+        isPaused = false;
+        pauseTimeStart = 0;
 
         // Mostramos y posicionamos el avión en el inicio
         planeElement.style('display', 'block');
@@ -151,12 +164,48 @@ function fly(originId, destinationId, durationMs) {
  */
 function stopCurrentFlight() {
     cancelAnimationFrame(animationFrameId);
+    isPaused = false;
+    if (planeElement) {
+        planeElement.style('display', 'none');
+    }
     console.log("Animación de vuelo detenida.");
+    if (onFlightCompleteCallback) {
+        const resolve = onFlightCompleteCallback;
+        onFlightCompleteCallback = null;
+        resolve();
+    }
+}
+
+/**
+ * Pausa la animación de vuelo actual.
+ */
+function pause() {
+    if (isPaused || !animationFrameId) return;
+    isPaused = true;
+    pauseTimeStart = performance.now();
+    cancelAnimationFrame(animationFrameId);
+    console.log("Animación de vuelo pausada.");
+}
+
+/**
+ * Reanuda la animación de vuelo actual.
+ */
+function resume() {
+    if (!isPaused) return;
+    isPaused = false;
+    const pauseDuration = performance.now() - pauseTimeStart;
+    if (flightStartTime) {
+        flightStartTime += pauseDuration;
+    }
+    animationFrameId = requestAnimationFrame(simulationLoop);
+    console.log("Animación de vuelo reanudada.");
 }
 
 // Exportamos las funciones públicas
 export const animationController = {
     initialize,
     fly,
-    stopCurrentFlight
+    stopCurrentFlight,
+    pause,
+    resume
 };

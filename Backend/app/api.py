@@ -6,13 +6,16 @@ from fastapi.responses import JSONResponse
 from .config import app_state
 from .dynamic import (
     choose_dynamic_activities,
+    complete_dynamic_flight,
     end_dynamic_session,
     get_dynamic_state,
+    handle_interruption,
     list_dynamic_activities,
     list_dynamic_flight_options,
     list_dynamic_jobs,
     perform_dynamic_flight,
     perform_dynamic_work,
+    start_dynamic_flight,
     start_dynamic_session,
 )
 from .loader import load_graph_from_json
@@ -25,6 +28,7 @@ from .schemas import (
     DynamicFlyRequest,
     DynamicStartRequest,
     DynamicWorkRequest,
+    InterruptRequest,
     LoadJsonRequest,
 )
 
@@ -55,6 +59,10 @@ def _dynamic_state_to_dict(state):
         "free_distance_km": state.free_distance_km,
         "steps": [s.__dict__ for s in state.steps],
         "suggested_route": state.suggested_route,
+        "in_transit": state.in_transit,
+        "transit_from": state.transit_from,
+        "transit_to": state.transit_to,
+        "transit_aircraft": state.transit_aircraft,
     }
 
 
@@ -123,31 +131,34 @@ def arrive(destination: str, plan_id: str):
 
 
 @router.post("/simulation/interrupt")
-def interrupt(origin: str, destination: str, plan_id: str):
+def interrupt(payload: InterruptRequest):
     """
-    Endpoint para gestionar una interrupción en pleno vuelo.
-    El frontend notifica al backend que la ruta se ha vuelto intransitable.
+    Endpoint para gestionar una interrupción de ruta.
+
+    Bloquea la ruta, detecta si el viajero está en tránsito,
+    lo redirige al aeropuerto de origen del tramo si aplica,
+    y recalcula alternativas disponibles.
     """
     _require_graph()
     graph = app_state.graph
     assert graph is not None
-    # 1. Bloquear la ruta en el grafo del backend
-    updated_route = graph.toggle_route_status(origin, destination, block=True)
 
-    if not updated_route:
-        raise HTTPException(status_code=404, detail="Route to interrupt not found.")
+    try:
+        state = get_dynamic_state(payload.session_id, app_state.dynamic_sessions)
+        result = handle_interruption(
+            graph=graph,
+            aircraft_cfg=app_state.aircraft_cfg,
+            state=state,
+            origin=payload.origin,
+            destination=payload.destination,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
 
-    # 2. Registrar el evento (opcional, pero bueno para debugging)
-    print(f"INTERRUPTION: Route from {origin} to {destination} for plan {plan_id} was blocked.")
-
-    # 3. Confirmar al frontend que la interrupción ha sido procesada.
-    # El frontend ahora es responsable de animar el regreso y recalcular.
     return {
-        "message": "Interruption acknowledged. Route is now blocked.",
-        "blocked_route": {
-            "from": origin,
-            "to": destination
-        }
+        "message": "Interrupción procesada.",
+        **result,
+        "state": _dynamic_state_to_dict(state),
     }
 
 
@@ -420,6 +431,48 @@ def dynamic_fly(session_id: str, payload: DynamicFlyRequest):
             state,
             payload.destination,
             payload.aircraft,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    return _dynamic_state_to_dict(updated)
+
+
+@router.post("/dynamic/fly/start/{session_id}")
+def dynamic_fly_start(session_id: str, payload: DynamicFlyRequest):
+    _require_graph()
+    graph = app_state.graph
+    assert graph is not None
+
+    try:
+        state = get_dynamic_state(session_id, app_state.dynamic_sessions)
+        updated = start_dynamic_flight(
+            graph,
+            app_state.aircraft_cfg,
+            app_state.rules,
+            state,
+            payload.destination,
+            payload.aircraft,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    return _dynamic_state_to_dict(updated)
+
+
+@router.post("/dynamic/fly/arrive/{session_id}")
+def dynamic_fly_arrive(session_id: str):
+    _require_graph()
+    graph = app_state.graph
+    assert graph is not None
+
+    try:
+        state = get_dynamic_state(session_id, app_state.dynamic_sessions)
+        updated = complete_dynamic_flight(
+            graph,
+            app_state.aircraft_cfg,
+            app_state.rules,
+            state,
         )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc

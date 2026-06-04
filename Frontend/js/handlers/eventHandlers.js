@@ -184,18 +184,54 @@ export class EventHandlers {
         return;
       }
 
-      await graphService.blockRoute(origin, destination, blocked);
-      const graphData = graphService.getGraphData();
-      graphRenderer.render(graphData, (airport) => this.handleAirportClick(airport));
-      
-      const action = blocked ? "Bloqueada" : "Desbloqueada";
-      const message = `✅ Ruta ${action}: ${origin} → ${destination}`;
-      routesRenderer.displayEmpty(message);
-      debugRenderer.displayJSON({
-        message: message,
-        route: { origin, destination, blocked },
-        timestamp: new Date().toISOString(),
-      });
+      // Si hay una sesión dinámica activa y estamos bloqueando, manejamos la interrupción
+      if (dynamicPlanService.hasSession() && blocked) {
+        
+        // Verificamos localmente para evitar condiciones de carrera (animación vs backend)
+        if (this.currentFlight && this.currentFlight.origin === origin && this.currentFlight.destination === destination) {
+          this.flightInterrupted = true;
+          animationController.stopCurrentFlight();
+        }
+
+        const result = await dynamicPlanService.blockRoute(origin, destination);
+        
+        if (result && result.was_redirected) {
+          routesRenderer.displayError(`🚨 ¡Vuelo interrumpido! El viajero fue redirigido a ${result.redirected_to}. La ruta ha sido bloqueada.`);
+          // Aseguramos detener la animación y marcar interrupción por si acaso no se atrapó localmente
+          animationController.stopCurrentFlight();
+          this.flightInterrupted = true;
+        } else {
+          routesRenderer.displayEmpty(`✅ Ruta Bloqueada: ${origin} → ${destination}. El viajero no fue afectado.`);
+        }
+        
+        // Recargar el panel dinámico con el nuevo estado (incluye posibles rutas alternativas)
+        if (result && result.state) {
+          await this._refreshDynamicPanel(result.state);
+        }
+        
+        // El grafo ya se recarga en dynamicPlanService.blockRoute, 
+        // pero podemos asegurarnos volviendo a renderizar
+        const graphData = graphService.getGraphData();
+        if (graphData) {
+          graphRenderer.render(graphData, (airport) => this.handleAirportClick(airport));
+          animationController.initialize();
+        }
+      } else {
+        // Bloqueo / Desbloqueo normal del grafo (sin interrupción de sesión activa o es desbloqueo)
+        await graphService.blockRoute(origin, destination, blocked);
+        const graphData = graphService.getGraphData();
+        graphRenderer.render(graphData, (airport) => this.handleAirportClick(airport));
+        animationController.initialize();
+        
+        const action = blocked ? "Bloqueada" : "Desbloqueada";
+        const message = `✅ Ruta ${action}: ${origin} → ${destination}`;
+        routesRenderer.displayEmpty(message);
+        debugRenderer.displayJSON({
+          message: message,
+          route: { origin, destination, blocked },
+          timestamp: new Date().toISOString(),
+        });
+      }
     } catch (error) {
       routesRenderer.displayError(`⚠️ ${error.message}`);
       debugRenderer.displayError(error);
@@ -428,27 +464,46 @@ export class EventHandlers {
         return;
       }
 
-    // 1. Obtener el origen actual antes de volar (para la animación)
+      // 1. Obtener el origen actual antes de volar (para la animación)
       const currentOrigin = dynamicPlanService.state.current_airport || this.refs.originDynamic.value;
 
-    // 2. Llamar al servicio para registrar el vuelo en el backend
-    // Asumiendo que tu API te devuelve la estimación de tiempo (ej: result.estimated_time_min)
-      const result = await dynamicPlanService.fly(flight.destination, flight.aircraft);
-    
-      const flightTimeMinutes = result.estimated_time_min || 10; // fallback por si acaso
+      // 2. Llamar a flyStart para marcar en tránsito en el backend
+      const startResult = await dynamicPlanService.flyStart(flight.destination, flight.aircraft);
+      await this._refreshDynamicPanel(startResult);
+
+      // Tiempo de animación
+      const flightTimeMinutes = startResult.estimated_time_min || 10;
       const animationDuration = flightTimeMinutes * 100;
 
-    // 3. SE DISPARA LA ANIMACIÓN: Bloqueamos la ejecución visual hasta que el avion llegue
-      routesRenderer.displayEmpty("✈️ Vuelo en progreso...");
+      // Variable para controlar si el vuelo se interrumpe
+      this.flightInterrupted = false;
+      this.currentFlight = { origin: currentOrigin, destination: flight.destination };
+
+      // 3. SE DISPARA LA ANIMACIÓN: Bloqueamos la ejecución visual hasta que el avion llegue
+      routesRenderer.displayEmpty("✈️ Vuelo en progreso... (Puedes interrumpirlo bloqueando la ruta en el panel lateral)");
       await animationController.fly(currentOrigin, flight.destination, animationDuration);
 
-    // 4. Termina la animación, refrescamos toda la interfaz con el nuevo estado
-      await this._refreshDynamicPanel(result);
-      debugRenderer.displayJSON(result);
+      // Limpiamos la referencia al vuelo actual
+      this.currentFlight = null;
+
+      // 4. Termina la animación, si no fue interrumpido, confirmamos la llegada
+      if (!this.flightInterrupted) {
+        const finalResult = await dynamicPlanService.flyArrive();
+        await this._refreshDynamicPanel(finalResult);
+        debugRenderer.displayJSON(finalResult);
+        routesRenderer.displayEmpty(`✅ Vuelo completado a ${flight.destination}`);
+      }
 
     } catch (error) {
       routesRenderer.displayError(`⚠️ ${error.message}`);
       debugRenderer.displayError(error);
+      
+      try {
+        if (dynamicPlanService.hasSession()) {
+          const refreshedState = await dynamicPlanService.refresh();
+          await this._refreshDynamicPanel(refreshedState);
+        }
+      } catch (e) {}
     }
   }
 }

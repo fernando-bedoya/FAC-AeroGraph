@@ -5,6 +5,7 @@
 
 import { apiClient } from "../api/client.js";
 import { animationController } from '../ui/animationController.js';
+import { graphService } from "./graphService.js";
 
 class DynamicPlanService {
   constructor() {
@@ -80,6 +81,24 @@ class DynamicPlanService {
     return result;
   }
 
+  async flyStart(destination, aircraft) {
+    if (!this.sessionId) {
+      throw new Error("No hay sesion dinamica activa");
+    }
+    const result = await apiClient.dynamicFlyStart(this.sessionId, destination, aircraft);
+    this.state = result;
+    return result;
+  }
+
+  async flyArrive() {
+    if (!this.sessionId) {
+      throw new Error("No hay sesion dinamica activa");
+    }
+    const result = await apiClient.dynamicFlyArrive(this.sessionId);
+    this.state = result;
+    return result;
+  }
+
   async finish() {
     if (!this.sessionId) {
       return;
@@ -92,8 +111,23 @@ class DynamicPlanService {
   async blockRoute(origin, destination) {
     /**
      * Bloquea una ruta durante la simulación
-     * Puede causar que viajeros en tránsito sean redirigidos al aeropuerto de origen
+     * Si hay una sesión activa, ejecuta la interrupción con redirección y recalculación
      */
+    if (this.sessionId) {
+      const result = await apiClient.simulationInterrupt(this.sessionId, origin, destination);
+      this.state = result.state;
+      
+      // Actualizar datos del grafo localmente para reflejar la ruta bloqueada en rojo
+      if (graphService.isLoaded()) {
+        try {
+          await graphService.refreshGraph();
+        } catch (e) {
+          console.error("No se pudo recargar el grafo tras la interrupción:", e);
+        }
+      }
+      
+      return result;
+    }
     return await apiClient.blockRoute(origin, destination, true);
   }
 }

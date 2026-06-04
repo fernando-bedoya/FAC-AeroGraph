@@ -17,13 +17,19 @@ class GraphService {
    */
   async loadGraph(filePath) {
     const result = await apiClient.loadGraph(filePath);
+    await this.refreshGraph();
+    return result;
+  }
+
+  /**
+   * Refresca los datos del grafo desde el backend sin recargar el archivo JSON original
+   */
+  async refreshGraph() {
     const graphData = await apiClient.getGraph();
-    
     this.graph = graphData;
     this.aircraft = graphData.aircraftConfig;
     this.rules = graphData.rules;
-    
-    return result;
+    return graphData;
   }
 
   /**
@@ -67,7 +73,7 @@ class GraphService {
   async blockRoute(origin, destination, blocked) {
     const result = await apiClient.blockRoute(origin, destination, blocked);
     // Actualizar estado local
-    await this.loadGraph(this.graph.loadedFile);
+    await this.refreshGraph();
     return result;
   }
 }
