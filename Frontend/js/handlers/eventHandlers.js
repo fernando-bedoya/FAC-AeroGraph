@@ -501,7 +501,9 @@ export class EventHandlers {
       }
 
     } catch (error) {
-      routesRenderer.displayError(`⚠️ ${error.message}`);
+      const cleanMessage = error.message.replace("API Error: ", "");
+      alert(cleanMessage);
+      routesRenderer.displayError(`⚠️ ${cleanMessage}`);
       debugRenderer.displayError(error);
       
       try {

@@ -31,7 +31,7 @@ def list_dynamic_flight_options(
 
             cost = calculate_segment_cost(route, cfg, state)
             if cost is None:
-                continue
+                cost = 0.0
 
             time_min = route.distance_km * cfg.time_per_km
             options.append(
@@ -87,7 +87,7 @@ def perform_dynamic_flight(
 
     seg_cost = calculate_segment_cost(route, cfg, state)
     if seg_cost is None:
-        raise DynamicPlanError("Ruta subsidiada excede el limite permitido")
+        raise DynamicPlanError("Este vuelo excede el límite de distancia subsidiada permitido")
 
     seg_time = route.distance_km * cfg.time_per_km
 
@@ -183,7 +183,7 @@ def start_dynamic_flight(
 
     seg_cost = calculate_segment_cost(route, cfg, state)
     if seg_cost is None:
-        raise DynamicPlanError("Ruta subsidiada excede el limite permitido")
+        raise DynamicPlanError("Este vuelo excede el límite de distancia subsidiada permitido")
 
     seg_time = route.distance_km * cfg.time_per_km
 
