@@ -159,6 +159,7 @@ document.addEventListener("DOMContentLoaded", () => {
       if (graphData) {
         graphRenderer.render(graphData, (airport) => eventHandlers.handleAirportClick(airport));
         animationController.initialize();
+        eventHandlers._highlightCurrentSession(state);
       }
     }
   });

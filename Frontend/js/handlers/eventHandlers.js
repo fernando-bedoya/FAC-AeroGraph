@@ -215,6 +215,10 @@ export class EventHandlers {
         if (graphData) {
           graphRenderer.render(graphData, (airport) => this.handleAirportClick(airport));
           animationController.initialize();
+          // Asegurar resaltar la planificación actual tras redibujar el grafo
+          if (result && result.state) {
+            this._highlightCurrentSession(result.state);
+          }
         }
       } else {
         // Bloqueo / Desbloqueo normal del grafo (sin interrupción de sesión activa o es desbloqueo)
@@ -223,6 +227,11 @@ export class EventHandlers {
         graphRenderer.render(graphData, (airport) => this.handleAirportClick(airport));
         animationController.initialize();
         
+        // Restaurar los resaltados de la sesión activa si la hay
+        if (dynamicPlanService.hasSession() && dynamicPlanService.state) {
+          this._highlightCurrentSession(dynamicPlanService.state);
+        }
+
         const action = blocked ? "Bloqueada" : "Desbloqueada";
         const message = `✅ Ruta ${action}: ${origin} → ${destination}`;
         routesRenderer.displayEmpty(message);
@@ -256,9 +265,10 @@ export class EventHandlers {
         Number(this.refs.dynamicTimeHours.value)
       );
 
+      // Limpiar resaltados viejos y aplicar los de la nueva sesión actual
+      this._highlightCurrentSession(state);
+
       await this._refreshDynamicPanel(state);
-      // Resaltar el aeropuerto de origen en el mapa
-      graphRenderer.highlightNode(state.current_airport);
       debugRenderer.displayJSON(state);
     } catch (error) {
       routesRenderer.displayError(`⚠️ ${error.message}`);
@@ -274,6 +284,7 @@ export class EventHandlers {
 
     try {
       const state = await dynamicPlanService.refresh();
+      this._highlightCurrentSession(state);
       await this._refreshDynamicPanel(state);
     } catch (error) {
       routesRenderer.displayError(`⚠️ ${error.message}`);
@@ -476,7 +487,7 @@ export class EventHandlers {
 
       // Tiempo de animación
       const flightTimeMinutes = startResult.estimated_time_min || 10;
-      const animationDuration = (flightTimeMinutes * 100) + 10000;
+      const animationDuration = (flightTimeMinutes * 100) + 5000; // 100ms por minuto + 5s base para animación
 
       // Variable para controlar si el vuelo se interrumpe
       this.flightInterrupted = false;
@@ -495,9 +506,8 @@ export class EventHandlers {
         await this._refreshDynamicPanel(finalResult);
         debugRenderer.displayJSON(finalResult);
         routesRenderer.displayEmpty(`✅ Vuelo completado a ${flight.destination}`);
-        // Resaltar nodo destino y tramo en el mapa
-        graphRenderer.highlightNode(flight.destination);
-        graphRenderer.highlightEdge(currentOrigin, flight.destination);
+        // Resaltar todo el recorrido de la sesión actual
+        this._highlightCurrentSession(finalResult);
       }
 
     } catch (error) {
@@ -597,5 +607,33 @@ export class EventHandlers {
 
     content.innerHTML = html;
     modal.classList.add("active");
+  }
+
+  /**
+   * Resalta todos los nodos y tramos de la planificación actual
+   * @private
+   */
+  _highlightCurrentSession(state) {
+    if (!state) return;
+    
+    // Primero, limpiar todos los resaltados
+    graphRenderer.resetHighlights();
+    
+    // Resaltar todos los aeropuertos visitados
+    if (state.visited_airports && Array.isArray(state.visited_airports)) {
+      state.visited_airports.forEach(airportId => {
+        graphRenderer.highlightNode(airportId);
+      });
+      
+      // Resaltar los tramos volados (enlaces entre consecutivos)
+      for (let i = 0; i < state.visited_airports.length - 1; i++) {
+        const origin = state.visited_airports[i];
+        const destination = state.visited_airports[i + 1];
+        graphRenderer.highlightEdge(origin, destination);
+      }
+    } else if (state.current_airport) {
+      // Si no hay lista de visitados pero hay aeropuerto actual (por si acaso)
+      graphRenderer.highlightNode(state.current_airport);
+    }
   }
 }

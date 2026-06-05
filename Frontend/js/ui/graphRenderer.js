@@ -337,6 +337,7 @@ class GraphRenderer {
     if (!this.svg) return;
 
     this.svg.selectAll("circle")
+      .filter((d) => d !== undefined)
       .transition()
       .duration(500)
       .attr("r", (d) => (d.isHub ? CONFIG.UI.GRAPH.NODE_HUB_RADIUS : CONFIG.UI.GRAPH.NODE_REGULAR_RADIUS))
