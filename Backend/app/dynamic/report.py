@@ -15,9 +15,17 @@ def export_report_format(report_data: Dict[str, Any], fmt: str) -> str:
         writer = csv.writer(output)
         
         writer.writerow(["--- TOTALES ---"])
-        writer.writerow(["Presupuesto Inicial", "Total Gastado", "Total Ganado", "Saldo Final", "Tiempo Total (min)"])
+        writer.writerow(["Presupuesto Inicial", "Total Gastado", "Total Ganado", "Saldo Final", "Tiempo Total (min)", "Total Alimentacion USD", "Total Alojamiento USD"])
         t = report_data.get("totals", {})
-        writer.writerow([t.get("initial_budget"), t.get("total_spent"), t.get("total_earned"), t.get("final_budget"), t.get("total_time_spent_min")])
+        writer.writerow([
+            t.get("initial_budget"),
+            t.get("total_spent"),
+            t.get("total_earned"),
+            t.get("final_budget"),
+            t.get("total_time_spent_min"),
+            t.get("total_food_cost", 0.0),
+            t.get("total_lodging_cost", 0.0)
+        ])
         writer.writerow([])
         
         writer.writerow(["--- DESTINOS ---"])
@@ -42,6 +50,18 @@ def export_report_format(report_data: Dict[str, Any], fmt: str) -> str:
         writer.writerow(["Aeropuerto", "Trabajo", "Horas", "Ingreso USD"])
         for j in report_data.get("jobs", []):
             writer.writerow([j.get("airport_id"), j.get("name"), j.get("hours"), j.get("earned_usd")])
+        writer.writerow([])
+
+        writer.writerow(["--- DETALLE DE COBROS OBLIGATORIOS ---"])
+        writer.writerow(["Aeropuerto ID", "Aeropuerto Nombre", "Concepto", "Valor USD", "Momento Aplicado (min)"])
+        for fee in report_data.get("mandatory_fees", []):
+            writer.writerow([
+                fee.get("airport_id"),
+                fee.get("airport_name"),
+                fee.get("action"),
+                fee.get("cost_usd"),
+                fee.get("moment_min")
+            ])
             
         return output.getvalue()
     else:
@@ -53,6 +73,10 @@ def generate_final_report(graph: Graph, state: DynamicState) -> Dict[str, Any]:
     flights = []
     activities = []
     jobs = []
+    mandatory_fees = []
+    
+    total_food_cost = 0.0
+    total_lodging_cost = 0.0
 
     # Initialize visited airports in the map to track costs and stays
     for ap_id in state.visited:
@@ -68,43 +92,73 @@ def generate_final_report(graph: Graph, state: DynamicState) -> Dict[str, Any]:
             }
 
     # Process all steps to aggregate data
+    elapsed_time = 0.0
     for step in state.steps:
         # Aggregating costs per destination
-        if step.airport_id in destinations_map:
-            cost = step.metadata.get("cost", 0.0)
-            if cost > 0:
-                destinations_map[step.airport_id]["total_cost"] += cost
+        cost = step.metadata.get("cost", 0.0)
+        if step.airport_id in destinations_map and cost > 0:
+            destinations_map[step.airport_id]["total_cost"] += cost
             
-            # Action specific aggregation
-            if step.action == "tiempo_libre":
-                destinations_map[step.airport_id]["stay_min"] += step.metadata.get("duration", 0.0)
-            elif step.action == "actividad":
-                destinations_map[step.airport_id]["stay_min"] += step.metadata.get("duration", 0.0)
-                activities.append({
-                    "airport_id": step.airport_id,
-                    "name": step.metadata.get("name", "Desconocida"),
-                    "kind": step.metadata.get("kind", "Desconocido"),
-                    "duration_min": step.metadata.get("duration", 0.0),
-                    "cost_usd": cost,
-                })
-            elif step.action == "trabajo":
-                destinations_map[step.airport_id]["stay_min"] += step.metadata.get("hours", 0.0) * 60
-                jobs.append({
-                    "airport_id": step.airport_id,
-                    "name": step.metadata.get("name", "Desconocido"),
-                    "hours": step.metadata.get("hours", 0.0),
-                    "earned_usd": step.metadata.get("earned", 0.0),
-                })
-        
-        # Flight segments
-        if step.action == "vuelo":
+        # Action specific aggregation
+        if step.action == "tiempo_libre":
+            duration = step.metadata.get("duration", 0.0)
+            elapsed_time += duration
+            if step.airport_id in destinations_map:
+                destinations_map[step.airport_id]["stay_min"] += duration
+        elif step.action == "actividad":
+            duration = step.metadata.get("duration", 0.0)
+            elapsed_time += duration
+            if step.airport_id in destinations_map:
+                destinations_map[step.airport_id]["stay_min"] += duration
+            activities.append({
+                "airport_id": step.airport_id,
+                "name": step.metadata.get("name", "Desconocida"),
+                "kind": step.metadata.get("kind", "Desconocido"),
+                "duration_min": duration,
+                "cost_usd": cost,
+            })
+        elif step.action == "trabajo":
+            hours = step.metadata.get("hours", 0.0)
+            duration = hours * 60
+            elapsed_time += duration
+            if step.airport_id in destinations_map:
+                destinations_map[step.airport_id]["stay_min"] += duration
+            jobs.append({
+                "airport_id": step.airport_id,
+                "name": step.metadata.get("name", "Desconocido"),
+                "hours": hours,
+                "earned_usd": step.metadata.get("earned", 0.0),
+            })
+        elif step.action == "vuelo":
+            duration = step.metadata.get("duration", 0.0)
+            elapsed_time += duration
             flights.append({
                 "origin": step.metadata.get("origin"),
                 "destination": step.metadata.get("destination"),
                 "aircraft": step.metadata.get("aircraft"),
                 "distance_km": step.metadata.get("distance_km", 0.0),
-                "duration_min": step.metadata.get("duration", 0.0),
-                "cost_usd": step.metadata.get("cost", 0.0),
+                "duration_min": duration,
+                "cost_usd": cost,
+            })
+        elif step.action == "alimentacion":
+            total_food_cost += cost
+            airport = graph.get_airport(step.airport_id)
+            mandatory_fees.append({
+                "airport_id": step.airport_id,
+                "airport_name": airport.name if airport else step.airport_id,
+                "action": "Alimentación",
+                "cost_usd": cost,
+                "moment_min": elapsed_time,
+            })
+        elif step.action == "alojamiento":
+            total_lodging_cost += cost
+            airport = graph.get_airport(step.airport_id)
+            mandatory_fees.append({
+                "airport_id": step.airport_id,
+                "airport_name": airport.name if airport else step.airport_id,
+                "action": "Alojamiento",
+                "cost_usd": cost,
+                "moment_min": elapsed_time,
             })
 
     # The current airport stay time needs to include the current stay_min
@@ -118,7 +172,9 @@ def generate_final_report(graph: Graph, state: DynamicState) -> Dict[str, Any]:
         "total_spent": state.total_spent,
         "total_earned": state.total_earned,
         "final_budget": state.budget_usd,
-        "total_time_spent_min": state.initial_budget - state.budget_usd, # Esto está mal, la logica de tiempo debe ser (initial_time - time_left_min)
+        "total_time_spent_min": 0.0,
+        "total_food_cost": total_food_cost,
+        "total_lodging_cost": total_lodging_cost,
     }
 
     # Asumiendo que podemos recuperar el tiempo inicial si lo tuvieramos, pero 
@@ -135,4 +191,5 @@ def generate_final_report(graph: Graph, state: DynamicState) -> Dict[str, Any]:
         "activities": activities,
         "jobs": jobs,
         "totals": totals,
+        "mandatory_fees": mandatory_fees,
     }

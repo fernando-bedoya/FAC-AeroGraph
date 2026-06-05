@@ -1237,3 +1237,23 @@ button.btn-report:hover {
 .report-table tr:hover td {
   background: rgba(50, 210, 255, 0.06);
 }
+
+.badge {
+  display: inline-block;
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.badge-food {
+  background: rgba(255, 165, 0, 0.15);
+  color: #ffa500;
+  border: 1px solid rgba(255, 165, 0, 0.3);
+}
+
+.badge-lodging {
+  background: rgba(168, 216, 255, 0.15);
+  color: #a8d8ff;
+  border: 1px solid rgba(168, 216, 255, 0.3);
+}

@@ -570,8 +570,36 @@ export class EventHandlers {
           <div class="report-total-card"><span>Total Ganado</span><strong class="earned">$${fmt(report.totals?.total_earned)} USD</strong></div>
           <div class="report-total-card"><span>Saldo Final</span><strong class="${(report.totals?.final_budget ?? 0) >= 0 ? 'earned' : 'spent'}">$${fmt(report.totals?.final_budget)} USD</strong></div>
           <div class="report-total-card"><span>Tiempo Total</span><strong>${fmtMin(report.totals?.total_time_spent_min ?? 0)}</strong></div>
+          <div class="report-total-card"><span>Total Alimentación</span><strong class="spent">$${fmt(report.totals?.total_food_cost ?? 0)} USD</strong></div>
+          <div class="report-total-card"><span>Total Alojamiento</span><strong class="spent">$${fmt(report.totals?.total_lodging_cost ?? 0)} USD</strong></div>
         </div>
       </div>`;
+
+    if (report.mandatory_fees?.length) {
+      html += `
+      <div class="report-section">
+        <h3>💸 Detalle de Cobros Obligatorios</h3>
+        <table class="report-table">
+          <thead>
+            <tr>
+              <th>Aeropuerto</th>
+              <th>Concepto</th>
+              <th>Valor</th>
+              <th>Momento de Aplicación</th>
+            </tr>
+          </thead>
+          <tbody>`;
+      report.mandatory_fees.forEach(fee => {
+        html += `
+            <tr>
+              <td><strong>${fee.airport_id}</strong> - ${fee.airport_name}</td>
+              <td><span class="badge ${fee.action === 'Alimentación' ? 'badge-food' : 'badge-lodging'}">${fee.action}</span></td>
+              <td class="spent">$${fmt(fee.cost_usd)} USD</td>
+              <td>Hace ${fmtMin(fee.moment_min)}</td>
+            </tr>`;
+      });
+      html += `</tbody></table></div>`;
+    }
 
     if (report.destinations?.length) {
       html += `<div class="report-section"><h3>🏙️ Destinos Visitados</h3><table class="report-table"><thead><tr><th>ID</th><th>Ciudad</th><th>País</th><th>Estadía</th><th>Costo Total</th></tr></thead><tbody>`;
