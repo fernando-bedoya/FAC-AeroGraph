@@ -186,7 +186,14 @@
     <div class="report-modal-window">
       <div class="report-modal-header">
         <h2 id="report-modal-title">📋 Reporte Final del Viaje</h2>
-        <button id="report-modal-close" class="report-modal-close" aria-label="Cerrar">&times;</button>
+        <div class="report-modal-actions">
+          <select id="report-export-format" class="export-format-select" style="padding: 0.5rem; border-radius: 4px; background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.2);">
+            <option value="csv" style="color: black;">CSV</option>
+            <option value="json" style="color: black;">JSON</option>
+          </select>
+          <button id="report-export-btn" class="btn-export-csv">📥 Exportar</button>
+          <button id="report-modal-close" class="report-modal-close" aria-label="Cerrar">&times;</button>
+        </div>
       </div>
       <div id="report-modal-content" class="report-modal-body"></div>
     </div>

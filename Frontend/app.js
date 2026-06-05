@@ -32,6 +32,7 @@ import { animationController } from './js/ui/animationController.js';
 import { dynamicPlanService } from "./js/services/dynamicPlanService.js";
 import { routeService } from "./js/services/routeService.js";
 import { graphService } from "./js/services/graphService.js";
+import { apiClient } from "./js/api/client.js";
 /**
  * Referencias a elementos del DOM
  * Centralizadas para fácil referencia
@@ -107,6 +108,16 @@ document.getElementById("report-modal").addEventListener("click", (e) => {
   if (e.target === e.currentTarget) {
     e.currentTarget.classList.remove("active");
   }
+});
+
+// Boton de exportar reporte
+document.getElementById("report-export-btn").addEventListener("click", () => {
+  if (!dynamicPlanService.hasSession()) {
+    return;
+  }
+  const format = document.getElementById("report-export-format").value;
+  const url = `${apiClient.baseURL}/dynamic/report/export/${dynamicPlanService.sessionId}?format=${format}`;
+  window.location.href = url;
 });
 
 // Redimensionamiento de ventana

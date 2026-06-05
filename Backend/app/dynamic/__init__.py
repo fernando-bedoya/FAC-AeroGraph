@@ -8,7 +8,7 @@ from .flights import (
 )
 from .interruption import handle_interruption
 from .jobs import list_dynamic_jobs, perform_dynamic_work
-from .report import generate_final_report
+from .report import generate_final_report, export_report_format
 from .routing import calculate_suggested_route
 from .session import end_dynamic_session, get_dynamic_state, start_dynamic_session
 
@@ -18,6 +18,7 @@ __all__ = [
     "choose_dynamic_activities",
     "complete_dynamic_flight",
     "end_dynamic_session",
+    "export_report_format",
     "generate_final_report",
     "get_dynamic_state",
     "list_dynamic_activities",

@@ -329,6 +329,29 @@ class GraphRenderer {
       .attr("stroke-dasharray", "0")
       .attr("stroke-opacity", 1);
   }
+
+  /**
+   * Restaura el estilo original de todos los nodos y enlaces
+   */
+  resetHighlights() {
+    if (!this.svg) return;
+
+    this.svg.selectAll("circle")
+      .transition()
+      .duration(500)
+      .attr("r", (d) => (d.isHub ? CONFIG.UI.GRAPH.NODE_HUB_RADIUS : CONFIG.UI.GRAPH.NODE_REGULAR_RADIUS))
+      .attr("fill", (d) => (d.isHub ? COLORS.HUB : COLORS.NODE))
+      .attr("stroke", "#12354d")
+      .attr("stroke-width", 2);
+
+    this.svg.selectAll("path.route-link")
+      .transition()
+      .duration(500)
+      .attr("stroke", (d) => (d.blocked ? COLORS.ARROW_BLOCKED : COLORS.ARROW))
+      .attr("stroke-width", (d) => (d.blocked ? 2.8 : 1.8))
+      .attr("stroke-dasharray", (d) => (d.blocked ? "6 3" : "0"))
+      .attr("stroke-opacity", 0.9);
+  }
 }
 
 export const graphRenderer = new GraphRenderer();

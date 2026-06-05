@@ -1,7 +1,51 @@
+import json
+import csv
+import io
 from typing import Any, Dict, List
 
 from ..graph import Graph
 from .models import DynamicState
+
+
+def export_report_format(report_data: Dict[str, Any], fmt: str) -> str:
+    if fmt.lower() == "json":
+        return json.dumps(report_data, indent=2, ensure_ascii=False)
+    elif fmt.lower() == "csv":
+        output = io.StringIO()
+        writer = csv.writer(output)
+        
+        writer.writerow(["--- TOTALES ---"])
+        writer.writerow(["Presupuesto Inicial", "Total Gastado", "Total Ganado", "Saldo Final", "Tiempo Total (min)"])
+        t = report_data.get("totals", {})
+        writer.writerow([t.get("initial_budget"), t.get("total_spent"), t.get("total_earned"), t.get("final_budget"), t.get("total_time_spent_min")])
+        writer.writerow([])
+        
+        writer.writerow(["--- DESTINOS ---"])
+        writer.writerow(["ID", "Ciudad", "Pais", "Estadia (min)", "Costo Total"])
+        for d in report_data.get("destinations", []):
+            writer.writerow([d.get("id"), d.get("city"), d.get("country"), d.get("stay_min"), d.get("total_cost")])
+        writer.writerow([])
+        
+        writer.writerow(["--- VUELOS ---"])
+        writer.writerow(["Origen", "Destino", "Aeronave", "Distancia (km)", "Duracion (min)", "Costo USD"])
+        for f in report_data.get("flights", []):
+            writer.writerow([f.get("origin"), f.get("destination"), f.get("aircraft"), f.get("distance_km"), f.get("duration_min"), f.get("cost_usd")])
+        writer.writerow([])
+        
+        writer.writerow(["--- ACTIVIDADES ---"])
+        writer.writerow(["Aeropuerto", "Actividad", "Tipo", "Duracion (min)", "Costo USD"])
+        for a in report_data.get("activities", []):
+            writer.writerow([a.get("airport_id"), a.get("name"), a.get("kind"), a.get("duration_min"), a.get("cost_usd")])
+        writer.writerow([])
+        
+        writer.writerow(["--- TRABAJOS ---"])
+        writer.writerow(["Aeropuerto", "Trabajo", "Horas", "Ingreso USD"])
+        for j in report_data.get("jobs", []):
+            writer.writerow([j.get("airport_id"), j.get("name"), j.get("hours"), j.get("earned_usd")])
+            
+        return output.getvalue()
+    else:
+        raise ValueError(f"Formato no soportado: {fmt}")
 
 
 def generate_final_report(graph: Graph, state: DynamicState) -> Dict[str, Any]:

@@ -8,6 +8,7 @@ from .dynamic import (
     choose_dynamic_activities,
     complete_dynamic_flight,
     end_dynamic_session,
+    export_report_format,
     generate_final_report,
     get_dynamic_state,
     handle_interruption,
@@ -504,6 +505,31 @@ def dynamic_report(session_id: str):
         raise HTTPException(status_code=404, detail=str(exc)) from exc
 
     return report
+
+
+@router.get("/dynamic/report/export/{session_id}")
+def dynamic_report_export(session_id: str, format: str = "csv"):
+    _require_graph()
+    graph = app_state.graph
+    assert graph is not None
+
+    try:
+        state = get_dynamic_state(session_id, app_state.dynamic_sessions)
+        report = generate_final_report(graph, state)
+        exported_data = export_report_format(report, format)
+        
+        headers = {}
+        if format.lower() == "csv":
+            headers["Content-Disposition"] = 'attachment; filename="report.csv"'
+            media_type = "text/csv"
+        else:
+            headers["Content-Disposition"] = 'attachment; filename="report.json"'
+            media_type = "application/json"
+            
+        from fastapi import Response
+        return Response(content=exported_data, media_type=media_type, headers=headers)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
 @router.post("/route/block")

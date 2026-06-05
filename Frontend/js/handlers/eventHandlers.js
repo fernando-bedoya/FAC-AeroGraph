@@ -329,6 +329,7 @@ export class EventHandlers {
 
     try {
       await dynamicPlanService.finish();
+      graphRenderer.resetHighlights();
       dynamicPanel.showEmpty("Sesion finalizada. Inicia una nueva sesion.");
     } catch (error) {
       routesRenderer.displayError(`⚠️ ${error.message}`);
