@@ -130,6 +130,13 @@ class DynamicPlanService {
     }
     return await apiClient.blockRoute(origin, destination, true);
   }
+
+  async getReport() {
+    if (!this.sessionId) {
+      throw new Error("No hay sesion dinamica activa");
+    }
+    return await apiClient.dynamicReport(this.sessionId);
+  }
 }
 
 export const dynamicPlanService = new DynamicPlanService();

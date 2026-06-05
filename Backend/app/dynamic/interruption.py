@@ -11,41 +11,10 @@ from typing import Dict, List, Optional
 from ..graph import Graph
 from ..models import AircraftConfig, DynamicStep
 from .models import DynamicState
+from .flights import list_dynamic_flight_options
+from .routing import calculate_suggested_route
 
 
-# ---------------------------------------------------------------------------
-# Funciones de gestión del estado de tránsito
-# ---------------------------------------------------------------------------
-
-def mark_in_transit(
-    state: DynamicState,
-    origin: str,
-    destination: str,
-    aircraft: str,
-) -> None:
-    """
-    Marca al viajero como en tránsito entre dos aeropuertos.
-
-    Se invoca al iniciar un vuelo (perform_dynamic_flight) para que el
-    sistema sepa en todo momento si el viajero está volando y en qué tramo.
-    """
-    state.in_transit = True
-    state.transit_from = origin
-    state.transit_to = destination
-    state.transit_aircraft = aircraft
-
-
-def clear_transit(state: DynamicState) -> None:
-    """
-    Limpia el estado de tránsito.
-
-    Se invoca cuando el viajero llega normalmente a su destino o cuando
-    es redirigido tras una interrupción.
-    """
-    state.in_transit = False
-    state.transit_from = None
-    state.transit_to = None
-    state.transit_aircraft = None
 
 
 # ---------------------------------------------------------------------------
@@ -104,11 +73,15 @@ def _redirect_to_origin(state: DynamicState) -> str:
             ),
             budget_after=state.budget_usd,
             time_left_min=state.time_left_min,
+            metadata={
+                "redirected_from": blocked_destination,
+                "redirected_to": redirect_airport,
+            },
         )
     )
 
     # Limpiar estado de tránsito
-    clear_transit(state)
+    state.clear_transit()
 
     return redirect_airport
 
@@ -129,6 +102,10 @@ def _record_block_event(
             detail=f"Ruta {origin}→{destination} bloqueada. El viajero no fue afectado.",
             budget_after=state.budget_usd,
             time_left_min=state.time_left_min,
+            metadata={
+                "blocked_origin": origin,
+                "blocked_destination": destination,
+            },
         )
     )
 
@@ -140,12 +117,7 @@ def _recalculate_flight_options(
 ) -> List[Dict]:
     """
     Calcula las opciones de vuelo disponibles desde la posición actual.
-
-    Reutiliza la lógica existente de list_dynamic_flight_options importándola
-    como dependencia interna para evitar importaciones circulares.
     """
-    from .engine import list_dynamic_flight_options
-
     return list_dynamic_flight_options(graph, aircraft_cfg, state)
 
 
@@ -160,8 +132,6 @@ def _recalculate_suggested_route(
     Utiliza el presupuesto y tiempo restantes para generar una nueva
     ruta sugerida que maximice destinos con el menor gasto.
     """
-    from .engine import calculate_suggested_route
-
     new_suggested = calculate_suggested_route(
         graph=graph,
         aircraft_cfg=aircraft_cfg,

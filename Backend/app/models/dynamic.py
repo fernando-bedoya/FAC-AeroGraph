@@ -1,5 +1,5 @@
-from dataclasses import dataclass
-from typing import List
+from dataclasses import dataclass, field
+from typing import Any, Dict, List
 
 
 @dataclass
@@ -9,6 +9,7 @@ class DynamicStep:
     detail: str
     budget_after: float
     time_left_min: float
+    metadata: Dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass

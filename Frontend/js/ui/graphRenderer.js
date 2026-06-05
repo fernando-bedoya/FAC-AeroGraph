@@ -301,6 +301,34 @@ class GraphRenderer {
   getSvg() {
     return this.svg;
   }
+
+  /**
+   * Resalta un nodo en el mapa
+   */
+  highlightNode(nodeId) {
+    if (!this.svg) return;
+    this.svg.select(`#node-circle-${nodeId}`)
+      .transition()
+      .duration(500)
+      .attr("fill", "#00ffcc") // Color distintivo para nodos visitados
+      .attr("stroke", "#ffffff")
+      .attr("stroke-width", 3)
+      .attr("r", 20); // Un poco más grande
+  }
+
+  /**
+   * Resalta un enlace (ruta) en el mapa
+   */
+  highlightEdge(originId, destId) {
+    if (!this.svg) return;
+    this.svg.select(`#route-path-${originId}-${destId}`)
+      .transition()
+      .duration(500)
+      .attr("stroke", "#00ffcc")
+      .attr("stroke-width", 4)
+      .attr("stroke-dasharray", "0")
+      .attr("stroke-opacity", 1);
+  }
 }
 
 export const graphRenderer = new GraphRenderer();

@@ -208,6 +208,13 @@ class ApiClient {
   async dynamicFinish(sessionId) {
     return this.post(`${CONFIG.API.ENDPOINTS.DYNAMIC_FINISH}/${sessionId}`, {});
   }
+
+  /**
+   * Obtiene el reporte final de la sesión dinámica
+   */
+  async dynamicReport(sessionId) {
+    return this.get(`/dynamic/report/${sessionId}`);
+  }
 }
 
 export const apiClient = new ApiClient();

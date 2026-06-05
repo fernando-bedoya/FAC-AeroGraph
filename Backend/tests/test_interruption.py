@@ -11,11 +11,7 @@ Cubre los escenarios:
 
 import pytest
 
-from app.dynamic.interruption import (
-    clear_transit,
-    handle_interruption,
-    mark_in_transit,
-)
+from app.dynamic.interruption import handle_interruption
 from app.dynamic.models import DynamicState
 from app.graph import Graph
 from app.models import AircraftConfig, Airport, Route
@@ -82,6 +78,7 @@ def _make_aircraft_cfg() -> dict:
     """Configuración de aeronave de prueba."""
     return {
         "Avion Comercial": AircraftConfig(
+            name="Avion Comercial",
             cost_per_km=0.5,
             time_per_km=0.1,
         ),
@@ -126,7 +123,7 @@ class TestTransitStateManagement:
         state = _make_state()
         assert state.in_transit is False
 
-        mark_in_transit(state, "B", "C", "Avion Comercial")
+        state.mark_in_transit("B", "C", "Avion Comercial")
 
         assert state.in_transit is True
         assert state.transit_from == "B"
@@ -141,7 +138,7 @@ class TestTransitStateManagement:
             transit_aircraft="Avion Comercial",
         )
 
-        clear_transit(state)
+        state.clear_transit()
 
         assert state.in_transit is False
         assert state.transit_from is None
@@ -151,7 +148,7 @@ class TestTransitStateManagement:
     def test_clear_transit_on_already_clear_state(self):
         """Limpiar un estado que ya está limpio no causa errores."""
         state = _make_state()
-        clear_transit(state)  # No debe lanzar excepción
+        state.clear_transit()  # No debe lanzar excepción
 
         assert state.in_transit is False
         assert state.transit_from is None
@@ -319,7 +316,7 @@ class TestFlightTransitIntegration:
         Tras completar un vuelo, in_transit debe ser False
         (se marcó durante el vuelo y se limpió al llegar).
         """
-        from app.dynamic.engine import perform_dynamic_flight
+        from app.dynamic import perform_dynamic_flight
 
         graph = _make_graph()
         cfg = _make_aircraft_cfg()

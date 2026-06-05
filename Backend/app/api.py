@@ -8,6 +8,7 @@ from .dynamic import (
     choose_dynamic_activities,
     complete_dynamic_flight,
     end_dynamic_session,
+    generate_final_report,
     get_dynamic_state,
     handle_interruption,
     list_dynamic_activities,
@@ -488,6 +489,21 @@ def dynamic_finish(session_id: str):
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
     return {"message": "Sesion dinamica finalizada"}
+
+
+@router.get("/dynamic/report/{session_id}")
+def dynamic_report(session_id: str):
+    _require_graph()
+    graph = app_state.graph
+    assert graph is not None
+
+    try:
+        state = get_dynamic_state(session_id, app_state.dynamic_sessions)
+        report = generate_final_report(graph, state)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+    return report
 
 
 @router.post("/route/block")

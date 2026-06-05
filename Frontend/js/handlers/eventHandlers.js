@@ -257,6 +257,8 @@ export class EventHandlers {
       );
 
       await this._refreshDynamicPanel(state);
+      // Resaltar el aeropuerto de origen en el mapa
+      graphRenderer.highlightNode(state.current_airport);
       debugRenderer.displayJSON(state);
     } catch (error) {
       routesRenderer.displayError(`⚠️ ${error.message}`);
@@ -492,6 +494,9 @@ export class EventHandlers {
         await this._refreshDynamicPanel(finalResult);
         debugRenderer.displayJSON(finalResult);
         routesRenderer.displayEmpty(`✅ Vuelo completado a ${flight.destination}`);
+        // Resaltar nodo destino y tramo en el mapa
+        graphRenderer.highlightNode(flight.destination);
+        graphRenderer.highlightEdge(currentOrigin, flight.destination);
       }
 
     } catch (error) {
@@ -505,5 +510,89 @@ export class EventHandlers {
         }
       } catch (e) {}
     }
+  }
+
+  /**
+   * Genera y muestra el reporte final en el modal
+   */
+  async handleGenerateReport(event) {
+    event?.preventDefault();
+
+    if (!dynamicPlanService.hasSession()) {
+      routesRenderer.displayError("❌ No hay una sesión dinámica activa");
+      return;
+    }
+
+    try {
+      const report = await dynamicPlanService.getReport();
+      this._showReportModal(report);
+    } catch (error) {
+      routesRenderer.displayError(`⚠️ ${error.message}`);
+      debugRenderer.displayError(error);
+    }
+  }
+
+  /**
+   * Muestra el modal con el reporte final
+   * @private
+   */
+  _showReportModal(report) {
+    const modal = document.getElementById("report-modal");
+    const content = document.getElementById("report-modal-content");
+    if (!modal || !content) return;
+
+    const fmt = (n) => (typeof n === "number" ? n.toFixed(2) : (n ?? "-"));
+    const fmtMin = (m) => {
+      const h = Math.floor(m / 60);
+      const min = Math.round(m % 60);
+      return h > 0 ? `${h}h ${min}min` : `${min}min`;
+    };
+
+    let html = `
+      <div class="report-section">
+        <h3>📊 Totales del Viaje</h3>
+        <div class="report-totals-grid">
+          <div class="report-total-card"><span>Presupuesto Inicial</span><strong>$${fmt(report.totals?.initial_budget)} USD</strong></div>
+          <div class="report-total-card"><span>Total Gastado</span><strong class="spent">$${fmt(report.totals?.total_spent)} USD</strong></div>
+          <div class="report-total-card"><span>Total Ganado</span><strong class="earned">$${fmt(report.totals?.total_earned)} USD</strong></div>
+          <div class="report-total-card"><span>Saldo Final</span><strong class="${(report.totals?.final_budget ?? 0) >= 0 ? 'earned' : 'spent'}">$${fmt(report.totals?.final_budget)} USD</strong></div>
+          <div class="report-total-card"><span>Tiempo Total</span><strong>${fmtMin(report.totals?.total_time_spent_min ?? 0)}</strong></div>
+        </div>
+      </div>`;
+
+    if (report.destinations?.length) {
+      html += `<div class="report-section"><h3>🏙️ Destinos Visitados</h3><table class="report-table"><thead><tr><th>ID</th><th>Ciudad</th><th>País</th><th>Estadía</th><th>Costo Total</th></tr></thead><tbody>`;
+      report.destinations.forEach(d => {
+        html += `<tr><td>${d.id}</td><td>${d.city}</td><td>${d.country}</td><td>${fmtMin(d.stay_min)}</td><td>$${fmt(d.total_cost)} USD</td></tr>`;
+      });
+      html += `</tbody></table></div>`;
+    }
+
+    if (report.flights?.length) {
+      html += `<div class="report-section"><h3>✈️ Tramos Volados</h3><table class="report-table"><thead><tr><th>Origen</th><th>Destino</th><th>Aeronave</th><th>Distancia</th><th>Duración</th><th>Costo</th></tr></thead><tbody>`;
+      report.flights.forEach(f => {
+        html += `<tr><td>${f.origin}</td><td>${f.destination}</td><td>${f.aircraft}</td><td>${fmt(f.distance_km)} km</td><td>${fmtMin(f.duration_min)}</td><td>$${fmt(f.cost_usd)} USD</td></tr>`;
+      });
+      html += `</tbody></table></div>`;
+    }
+
+    if (report.activities?.length) {
+      html += `<div class="report-section"><h3>🎯 Actividades Realizadas</h3><table class="report-table"><thead><tr><th>Aeropuerto</th><th>Actividad</th><th>Tipo</th><th>Duración</th><th>Costo</th></tr></thead><tbody>`;
+      report.activities.forEach(a => {
+        html += `<tr><td>${a.airport_id}</td><td>${a.name}</td><td>${a.kind}</td><td>${fmtMin(a.duration_min)}</td><td>$${fmt(a.cost_usd)} USD</td></tr>`;
+      });
+      html += `</tbody></table></div>`;
+    }
+
+    if (report.jobs?.length) {
+      html += `<div class="report-section"><h3>💼 Trabajos Realizados</h3><table class="report-table"><thead><tr><th>Aeropuerto</th><th>Trabajo</th><th>Horas</th><th>Ingreso</th></tr></thead><tbody>`;
+      report.jobs.forEach(j => {
+        html += `<tr><td>${j.airport_id}</td><td>${j.name}</td><td>${fmt(j.hours)}h</td><td>$${fmt(j.earned_usd)} USD</td></tr>`;
+      });
+      html += `</tbody></table></div>`;
+    }
+
+    content.innerHTML = html;
+    modal.classList.add("active");
   }
 }

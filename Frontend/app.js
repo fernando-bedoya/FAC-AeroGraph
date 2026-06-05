@@ -63,6 +63,7 @@ const refs = {
   btnDynamicApplyActivities: document.getElementById("btnDynamicApplyActivities"),
   btnDynamicWork: document.getElementById("btnDynamicWork"),
   btnDynamicFly: document.getElementById("btnDynamicFly"),
+  btnGenerateReport: document.getElementById("btnGenerateReport"),
 };
 
 /**
@@ -96,6 +97,17 @@ refs.btnDynamicFinish.addEventListener("click", (e) => eventHandlers.handleDynam
 refs.btnDynamicApplyActivities.addEventListener("click", (e) => eventHandlers.handleDynamicActivities(e));
 refs.btnDynamicWork.addEventListener("click", (e) => eventHandlers.handleDynamicWork(e));
 refs.btnDynamicFly.addEventListener("click", (e) => eventHandlers.handleDynamicFly(e));
+refs.btnGenerateReport.addEventListener("click", (e) => eventHandlers.handleGenerateReport(e));
+
+// Cerrar el modal de reporte al hacer clic en X o fuera del modal
+document.getElementById("report-modal-close").addEventListener("click", () => {
+  document.getElementById("report-modal").classList.remove("active");
+});
+document.getElementById("report-modal").addEventListener("click", (e) => {
+  if (e.target === e.currentTarget) {
+    e.currentTarget.classList.remove("active");
+  }
+});
 
 // Redimensionamiento de ventana
 window.addEventListener("resize", () => {

@@ -9,7 +9,7 @@ backend_dir = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(backend_dir))
 
 from app.loader import load_graph_from_json
-from app.dynamic.engine import (
+from app.dynamic import (
     start_dynamic_session,
     list_dynamic_jobs,
     perform_dynamic_work,

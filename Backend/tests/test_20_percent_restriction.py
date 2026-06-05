@@ -5,8 +5,8 @@ backend_dir = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(backend_dir))
 
 from app.loader import load_graph_from_json
-from app.dynamic.engine import start_dynamic_session, perform_dynamic_flight
-from app.dynamic.engine import DynamicPlanError
+from app.dynamic import start_dynamic_session, perform_dynamic_flight
+from app.dynamic import DynamicPlanError
 
 
 def test_20_percent_restriction():

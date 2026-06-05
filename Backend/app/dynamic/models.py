@@ -28,3 +28,15 @@ class DynamicState:
     transit_from: Optional[str] = None
     transit_to: Optional[str] = None
     transit_aircraft: Optional[str] = None
+
+    def mark_in_transit(self, origin: str, destination: str, aircraft: str) -> None:
+        self.in_transit = True
+        self.transit_from = origin
+        self.transit_to = destination
+        self.transit_aircraft = aircraft
+
+    def clear_transit(self) -> None:
+        self.in_transit = False
+        self.transit_from = None
+        self.transit_to = None
+        self.transit_aircraft = None

@@ -121,6 +121,7 @@
         <button id="btnDynamicStart">Iniciar sesion</button>
         <button id="btnDynamicRefresh" class="ghost">Actualizar estado</button>
         <button id="btnDynamicFinish" class="ghost">Finalizar sesion</button>
+        <button id="btnGenerateReport" class="btn-report">📋 Generar Reporte Final</button>
       </section>
 
 
@@ -179,6 +180,17 @@
       <pre id="output"></pre>
     </aside>
   </main>
+
+  <!-- Modal de Reporte Final -->
+  <div id="report-modal" class="report-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="report-modal-title">
+    <div class="report-modal-window">
+      <div class="report-modal-header">
+        <h2 id="report-modal-title">📋 Reporte Final del Viaje</h2>
+        <button id="report-modal-close" class="report-modal-close" aria-label="Cerrar">&times;</button>
+      </div>
+      <div id="report-modal-content" class="report-modal-body"></div>
+    </div>
+  </div>
 
   <!-- Carga el módulo principal de la aplicación -->
   <script type="module" src="app.js"></script>
