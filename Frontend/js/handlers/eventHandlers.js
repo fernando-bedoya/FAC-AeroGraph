@@ -473,7 +473,7 @@ export class EventHandlers {
 
       // Tiempo de animación
       const flightTimeMinutes = startResult.estimated_time_min || 10;
-      const animationDuration = flightTimeMinutes * 100;
+      const animationDuration = (flightTimeMinutes * 100) + 10000;
 
       // Variable para controlar si el vuelo se interrumpe
       this.flightInterrupted = false;
