@@ -1,6 +1,6 @@
 from typing import Dict
 
-from ..algorithms import bellman_ford_max_coverage
+from ..algorithms import backtracking_max_coverage
 from ..graph import Graph
 from ..models import AircraftConfig
 
@@ -22,7 +22,7 @@ def calculate_suggested_route(
     """
     try:
         # Calcular ruta optimizada por costo que maximice destinos
-        segments = bellman_ford_max_coverage(
+        segments = backtracking_max_coverage(
             graph=graph,
             aircraft_cfg=aircraft_cfg,
             origin=origin,

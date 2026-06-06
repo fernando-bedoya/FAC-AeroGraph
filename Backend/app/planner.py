@@ -1,6 +1,6 @@
 from typing import Dict, List, Set
 
-from .algorithms import dijkstra_path, bellman_ford_max_coverage
+from .algorithms import dijkstra_path, backtracking_max_coverage
 from .graph import Graph
 from .models import AircraftConfig, DynamicPlan, DynamicStep, TravelPlan
 
@@ -21,8 +21,9 @@ def plan_basic_itinerary(
     time_hours: float,
 ) -> Dict[str, TravelPlan]:
     
-    # 🔴 AQUÍ SE CALCULA LA RUTA POR PRESUPUESTO
-    max_destinations_budget = bellman_ford_max_coverage(
+    # 🔴 AQUÍ SE CALCULA LA RUTA POR PRESUPUESTO (Punto a del algoritmo 2.2)
+    # Backtracking: poda temprana cuando costo acumulado > budget_limit
+    max_destinations_budget = backtracking_max_coverage(
         graph=graph,
         aircraft_cfg=aircraft_cfg,
         origin=origin,
@@ -31,8 +32,9 @@ def plan_basic_itinerary(
         optimize_for="costo",                 # ← Optimiza por COSTO
     )
     
-    # También calcula por tiempo (parte b)
-    max_destinations_time = bellman_ford_max_coverage(
+    # 🔴 AQUÍ SE CALCULA LA RUTA POR TIEMPO (Punto b del algoritmo 2.2)
+    # El mismo backtracking, ahora poda cuando tiempo acumulado > time_limit_min
+    max_destinations_time = backtracking_max_coverage(
         graph=graph,
         aircraft_cfg=aircraft_cfg,
         origin=origin,
