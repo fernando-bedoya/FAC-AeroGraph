@@ -81,28 +81,43 @@
         <h2>Configuracion de aeronaves</h2>
         <div class="aircraft-config">
           <div class="aircraft-item">
-            <label>Avion Comercial
-              <div class="aircraft-inputs">
+            <span class="aircraft-name">Avion Comercial</span>
+            <div class="aircraft-inputs">
+              <div class="aircraft-field">
+                <span class="field-label">Costo (USD/km)</span>
                 <input type="number" id="costAvionComercial" placeholder="USD/km" step="0.01" value="0.18" />
+              </div>
+              <div class="aircraft-field">
+                <span class="field-label">Tiempo (min/km)</span>
                 <input type="number" id="timeAvionComercial" placeholder="min/km" step="0.1" value="0.7" />
               </div>
-            </label>
+            </div>
           </div>
           <div class="aircraft-item">
-            <label>Avion Regional
-              <div class="aircraft-inputs">
+            <span class="aircraft-name">Avion Regional</span>
+            <div class="aircraft-inputs">
+              <div class="aircraft-field">
+                <span class="field-label">Costo (USD/km)</span>
                 <input type="number" id="costAvionRegional" placeholder="USD/km" step="0.01" value="0.25" />
+              </div>
+              <div class="aircraft-field">
+                <span class="field-label">Tiempo (min/km)</span>
                 <input type="number" id="timeAvionRegional" placeholder="min/km" step="0.1" value="1.1" />
               </div>
-            </label>
+            </div>
           </div>
           <div class="aircraft-item">
-            <label>Helice
-              <div class="aircraft-inputs">
+            <span class="aircraft-name">Helice</span>
+            <div class="aircraft-inputs">
+              <div class="aircraft-field">
+                <span class="field-label">Costo (USD/km)</span>
                 <input type="number" id="costHelice" placeholder="USD/km" step="0.01" value="0.12" />
+              </div>
+              <div class="aircraft-field">
+                <span class="field-label">Tiempo (min/km)</span>
                 <input type="number" id="timeHelice" placeholder="min/km" step="0.1" value="2.5" />
               </div>
-            </label>
+            </div>
           </div>
         </div>
         <button id="btnUpdateAircraft">Aplicar cambios</button>

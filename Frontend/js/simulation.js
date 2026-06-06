@@ -30,6 +30,14 @@ export async function blockRouteOnGraph(origin, destination, blocked) {
   await refreshGraph();
 }
 
+export async function updateAircraftConfig(config) {
+  const result = await api.updateAircraftConfig(config);
+  if (isGraphLoaded()) {
+    try { await refreshGraph(); } catch (e) { /* continuar */ }
+  }
+  return result;
+}
+
 // --- Plan básico ---
 
 export async function calculateBasicPlan(origin, budget, hours) {
