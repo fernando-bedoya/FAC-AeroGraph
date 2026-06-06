@@ -295,7 +295,21 @@ async function handleDynamicFly() {
 
     const isSubsidized = selected.dataset.subsidized === "true";
     const distance = parseFloat(selected.dataset.distance);
+    const cost = parseFloat(selected.dataset.cost);
+    const time = parseFloat(selected.dataset.time);
     const state = sim.getState();
+
+    // 1. Validar tiempo insuficiente antes de iniciar la simulación del vuelo
+    if (state && state.time_left_min < time) {
+      ui.showAlertModal("⚠️ Tiempo Insuficiente", "No tienes suficiente tiempo restante para realizar este vuelo.");
+      return;
+    }
+
+    // 2. Validar presupuesto insuficiente antes de iniciar el vuelo
+    if (state && state.budget_usd < cost) {
+      ui.showAlertModal("⚠️ Presupuesto Insuficiente", "No tienes suficiente presupuesto para realizar este vuelo.");
+      return;
+    }
 
     if (isSubsidized && state && state.total_distance_km > 0) {
       const projectedTotal = state.total_distance_km + distance;
@@ -332,7 +346,11 @@ async function handleDynamicFly() {
     }
   } catch (err) {
     const msg = err.message.replace("API Error: ", "");
-    ui.showRouteError(msg);
+    if (msg.toLowerCase().includes("presupuesto") || msg.toLowerCase().includes("tiempo") || msg.toLowerCase().includes("insuficiente")) {
+      ui.showAlertModal("⚠️ Requisitos Insuficientes", msg);
+    } else {
+      ui.showRouteError(msg);
+    }
     try {
       if (sim.hasSession()) {
         const refreshed = await sim.refreshState();
@@ -419,6 +437,17 @@ document.addEventListener("DOMContentLoaded", () => {
     $("subsidy-modal").classList.remove("active");
   });
   $("subsidy-modal").addEventListener("click", (e) => {
+    if (e.target === e.currentTarget) e.currentTarget.classList.remove("active");
+  });
+
+  // Modal de advertencia de requisitos (Presupuesto/Tiempo)
+  $("alert-modal-close").addEventListener("click", () => {
+    $("alert-modal").classList.remove("active");
+  });
+  $("alert-modal-btn-ok").addEventListener("click", () => {
+    $("alert-modal").classList.remove("active");
+  });
+  $("alert-modal").addEventListener("click", (e) => {
     if (e.target === e.currentTarget) e.currentTarget.classList.remove("active");
   });
 

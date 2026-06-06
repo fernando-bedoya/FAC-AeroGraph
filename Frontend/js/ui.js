@@ -219,7 +219,7 @@ export function showFlights(options) {
         const badge = o.subsidized ? `<span class="subsidy-badge">Subsidio</span>` : "";
         return `
         <label class="dynamic-item dynamic-item-flight">
-          <input type="radio" name="dynamic-flight-${dest}" data-destination="${o.destination}" data-aircraft="${o.aircraft}" data-distance="${o.distance_km}" data-subsidized="${o.subsidized}" />
+          <input type="radio" name="dynamic-flight-${dest}" data-destination="${o.destination}" data-aircraft="${o.aircraft}" data-distance="${o.distance_km}" data-subsidized="${o.subsidized}" data-cost="${o.segment_cost}" data-time="${o.segment_time_min}" />
           <span>${o.aircraft}</span>
           <span class="dynamic-meta">${o.distance_km.toFixed(1)} km - $${o.segment_cost.toFixed(2)} - ${fmtTime(o.segment_time_min)}</span>
           ${badge}
@@ -388,4 +388,13 @@ export function showSubsidyModal(currentState, flightDistance) {
 
   modal.classList.add("active");
 }
+
+export function showAlertModal(title, message) {
+  const modal = document.getElementById("alert-modal");
+  if (!modal) return;
+  document.getElementById("alert-modal-title").textContent = title;
+  document.getElementById("alert-modal-message").textContent = message;
+  modal.classList.add("active");
+}
+
 
