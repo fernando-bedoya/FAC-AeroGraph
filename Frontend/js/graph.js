@@ -338,7 +338,8 @@ function drawArcs() {
       originCoord: origin ? [origin.lon, origin.lat] : null,
       destinationCoord: destination ? [destination.lon, destination.lat] : null,
     };
-  }).filter((r) => r.originCoord && r.destinationCoord);
+  }).filter((r) => r.originCoord && r.destinationCoord)
+    .sort((a, b) => (a.blocked ? 1 : 0) - (b.blocked ? 1 : 0));
 
   routes.forEach((route) => {
     // Generar puntos a lo largo del gran círculo
@@ -370,6 +371,8 @@ function drawArcs() {
     // Sombra del arco
     arcsGroup.append("path")
       .datum(visiblePoints)
+      .attr("class", "arc-shadow")
+      .attr("id", `arc-shadow-${route.origin}-${route.destination}`)
       .attr("d", lineGenerator)
       .attr("fill", "none")
       .attr("stroke", route.blocked ? COLORS.ARC_BLOCKED : COLORS.ARC)
@@ -577,6 +580,24 @@ export function resetHighlights() {
     .attr("stroke", "#fff")
     .attr("stroke-width", 2);
 
+  svg.selectAll(".arc-shadow")
+    .transition().duration(500)
+    .attr("stroke", function() {
+      const id = d3.select(this).attr("id");
+      if (!id) return COLORS.ARC;
+      const parts = id.replace("arc-shadow-", "").split("-");
+      const route = currentGraphData.routes.find(r => r.origin === parts[0] && r.destination === parts[1]);
+      return route?.blocked ? COLORS.ARC_BLOCKED : COLORS.ARC;
+    })
+    .attr("stroke-width", function() {
+      const id = d3.select(this).attr("id");
+      if (!id) return 2.5;
+      const parts = id.replace("arc-shadow-", "").split("-");
+      const route = currentGraphData.routes.find(r => r.origin === parts[0] && r.destination === parts[1]);
+      return route?.blocked ? 4 : 2.5;
+    })
+    .attr("stroke-opacity", 0.3);
+
   svg.selectAll(".arc")
     .transition().duration(500)
     .attr("stroke", function() {
@@ -592,6 +613,13 @@ export function resetHighlights() {
       const parts = id.replace("arc-", "").split("-");
       const route = currentGraphData.routes.find(r => r.origin === parts[0] && r.destination === parts[1]);
       return route?.blocked ? 2.5 : 1.8;
+    })
+    .attr("stroke-dasharray", function() {
+      const id = d3.select(this).attr("id");
+      if (!id) return "none";
+      const parts = id.replace("arc-", "").split("-");
+      const route = currentGraphData.routes.find(r => r.origin === parts[0] && r.destination === parts[1]);
+      return route?.blocked ? "6,4" : "none";
     })
     .attr("stroke-opacity", 0.9);
 }
