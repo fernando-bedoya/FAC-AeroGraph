@@ -293,6 +293,19 @@ async function handleDynamicFly() {
     const aircraft = selected.dataset.aircraft;
     const currentOrigin = sim.getState().current_airport || $("originDynamic").value;
 
+    const isSubsidized = selected.dataset.subsidized === "true";
+    const distance = parseFloat(selected.dataset.distance);
+    const state = sim.getState();
+
+    if (isSubsidized && state && state.total_distance_km > 0) {
+      const projectedTotal = state.total_distance_km + distance;
+      const projectedFree = state.free_distance_km + distance;
+      if (projectedFree > projectedTotal * 0.2) {
+        ui.showSubsidyModal(state, distance);
+        return;
+      }
+    }
+
     // Marcar en tránsito
     const startResult = await sim.flyStart(destination, aircraft);
     await refreshDynamicUI(startResult);
@@ -395,6 +408,17 @@ document.addEventListener("DOMContentLoaded", () => {
     $("report-modal").classList.remove("active");
   });
   $("report-modal").addEventListener("click", (e) => {
+    if (e.target === e.currentTarget) e.currentTarget.classList.remove("active");
+  });
+
+  // Modal de advertencia de ruta subsidiada (Límite 20%)
+  $("subsidy-modal-close").addEventListener("click", () => {
+    $("subsidy-modal").classList.remove("active");
+  });
+  $("subsidy-modal-btn-ok").addEventListener("click", () => {
+    $("subsidy-modal").classList.remove("active");
+  });
+  $("subsidy-modal").addEventListener("click", (e) => {
     if (e.target === e.currentTarget) e.currentTarget.classList.remove("active");
   });
 

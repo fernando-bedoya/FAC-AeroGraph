@@ -180,6 +180,70 @@
     </div>
   </div>
 
+  <!-- Modal de Advertencia de Ruta Subsidiada (Límite 20%) -->
+  <div id="subsidy-modal" class="subsidy-modal-overlay">
+    <div class="subsidy-modal-window">
+      <div class="subsidy-modal-header">
+        <h2>⚠️ Límite de Ruta Subsidiada Superado</h2>
+        <button id="subsidy-modal-close" class="subsidy-modal-close">&times;</button>
+      </div>
+      <div class="subsidy-modal-body">
+        <div class="subsidy-alert-banner">
+          <div class="subsidy-alert-icon">🚫✈️</div>
+          <div class="subsidy-alert-text">
+            No es posible realizar este vuelo. Las reglas de viaje estipulan que los tramos con costo base cero (subsidiados) <strong>no pueden superar el 20% de la distancia total</strong> del trayecto.
+          </div>
+        </div>
+
+        <div class="subsidy-comparison-container">
+          <div class="subsidy-progress-section">
+            <div class="subsidy-progress-label">
+              <span>Uso de Rutas Subsidiadas Proyectado</span>
+              <strong id="subsidy-percentage-text">0.0%</strong>
+            </div>
+            <div class="subsidy-progress-bar-bg">
+              <div id="subsidy-progress-bar" class="subsidy-progress-bar-fill"></div>
+              <div class="subsidy-limit-marker" style="left: 20%;" title="Límite del 20%"></div>
+            </div>
+            <div class="subsidy-progress-legend">
+              <span>0%</span>
+              <span style="color: var(--danger); font-weight: bold;">Límite 20%</span>
+              <span>100%</span>
+            </div>
+          </div>
+
+          <div class="subsidy-stats-grid">
+            <div class="subsidy-stat-card">
+              <span>Distancia Actual</span>
+              <strong id="subsidy-stat-current">0.0 km</strong>
+            </div>
+            <div class="subsidy-stat-card">
+              <span>Distancia Subsid. Actual</span>
+              <strong id="subsidy-stat-free">0.0 km</strong>
+            </div>
+            <div class="subsidy-stat-card highlighted">
+              <span>Tramo Solicitado</span>
+              <strong id="subsidy-stat-requested">0.0 km</strong>
+            </div>
+            <div class="subsidy-stat-card warning">
+              <span>Proyección Total</span>
+              <strong id="subsidy-stat-projected-total">0.0 km</strong>
+            </div>
+            <div class="subsidy-stat-card warning">
+              <span>Proyección Subsid.</span>
+              <strong id="subsidy-stat-projected-free">0.0 km</strong>
+            </div>
+          </div>
+        </div>
+
+        <div class="subsidy-modal-footer">
+          <button id="subsidy-modal-btn-ok" class="subsidy-btn-close">Entendido</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
   <script type="module" src="app.js"></script>
 </body>
 </html>

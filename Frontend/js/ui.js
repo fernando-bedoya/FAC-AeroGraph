@@ -215,12 +215,16 @@ export function showFlights(options) {
   el.innerHTML = Object.entries(grouped).map(([dest, opts]) => `
     <div class="dynamic-flight-group">
       <div class="dynamic-flight-destination">${opts[0].origin} &rarr; ${dest}</div>
-      ${opts.map((o) => `
+      ${opts.map((o) => {
+        const badge = o.subsidized ? `<span class="subsidy-badge">Subsidio</span>` : "";
+        return `
         <label class="dynamic-item dynamic-item-flight">
-          <input type="radio" name="dynamic-flight-${dest}" data-destination="${o.destination}" data-aircraft="${o.aircraft}" />
+          <input type="radio" name="dynamic-flight-${dest}" data-destination="${o.destination}" data-aircraft="${o.aircraft}" data-distance="${o.distance_km}" data-subsidized="${o.subsidized}" />
           <span>${o.aircraft}</span>
           <span class="dynamic-meta">${o.distance_km.toFixed(1)} km - $${o.segment_cost.toFixed(2)} - ${fmtTime(o.segment_time_min)}</span>
-        </label>`).join("")}
+          ${badge}
+        </label>`;
+      }).join("")}
     </div>`).join("");
 }
 
@@ -356,3 +360,32 @@ export function fillAirportSelectors(airports) {
     document.getElementById("originDynamic").value = airports[0].id;
   }
 }
+
+// --- Modal de Ruta Subsidiada (Límite 20%) ---
+
+export function showSubsidyModal(currentState, flightDistance) {
+  const modal = document.getElementById("subsidy-modal");
+  if (!modal) return;
+
+  const currentDist = currentState.total_distance_km || 0;
+  const currentFree = currentState.free_distance_km || 0;
+  const projectedTotal = currentDist + flightDistance;
+  const projectedFree = currentFree + flightDistance;
+  const percentage = projectedTotal > 0 ? (projectedFree / projectedTotal) * 100 : 0;
+
+  document.getElementById("subsidy-percentage-text").textContent = percentage.toFixed(1) + "%";
+  
+  const progressBar = document.getElementById("subsidy-progress-bar");
+  if (progressBar) {
+    progressBar.style.width = Math.min(percentage, 100).toFixed(1) + "%";
+  }
+
+  document.getElementById("subsidy-stat-current").textContent = currentDist.toFixed(1) + " km";
+  document.getElementById("subsidy-stat-free").textContent = currentFree.toFixed(1) + " km";
+  document.getElementById("subsidy-stat-requested").textContent = flightDistance.toFixed(1) + " km";
+  document.getElementById("subsidy-stat-projected-total").textContent = projectedTotal.toFixed(1) + " km";
+  document.getElementById("subsidy-stat-projected-free").textContent = projectedFree.toFixed(1) + " km";
+
+  modal.classList.add("active");
+}
+
