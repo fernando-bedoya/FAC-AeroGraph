@@ -193,6 +193,24 @@ def load_graph(payload: LoadJsonRequest):
     }
 
 
+@router.post("/config/aircraft")
+def update_aircraft_config(payload: dict):
+    """Update aircraft configuration (cost per km and time per km)."""
+    _require_graph()
+    
+    for aircraft_name, config in payload.items():
+        if aircraft_name in app_state.aircraft_cfg:
+            if "costoKm" in config:
+                app_state.aircraft_cfg[aircraft_name].cost_per_km = float(config["costoKm"])
+            if "tiempoKm" in config:
+                app_state.aircraft_cfg[aircraft_name].time_per_km = float(config["tiempoKm"])
+    
+    return {
+        "message": "Configuracion actualizada",
+        "aircraftConfig": {k: v.__dict__ for k, v in app_state.aircraft_cfg.items()},
+    }
+
+
 @router.get("/graph")
 def get_graph_data():
     _require_graph()
@@ -219,6 +237,8 @@ def get_graph_data():
             "isHub": airport.is_hub,
             "lodgingCost": airport.lodging_cost,
             "foodCost": airport.food_cost,
+            "lat": airport.lat,
+            "lon": airport.lon,
             "aircraftTypes": sorted(list(aircraft_by_airport.get(airport.id, []))),
             "activities": [a.__dict__ for a in airport.activities],
             "jobs": [j.__dict__ for j in airport.jobs],

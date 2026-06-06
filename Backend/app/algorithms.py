@@ -1,3 +1,18 @@
+"""
+Graph algorithms for route optimization.
+
+This module implements pathfinding algorithms for finding optimal routes
+in the airline network graph. It includes Dijkstra's algorithm for finding
+shortest paths based on different criteria (distance, time, cost).
+
+Algorithms used:
+- Dijkstra's Algorithm: Finds the shortest path from a source node to all
+  other nodes in a weighted graph with non-negative edge weights.
+  Time Complexity: O((V + E) log V) where V is vertices and E is edges
+  Justification: Used because airline routes have non-negative weights
+  (distance, time, cost) and we need optimal paths.
+"""
+
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Set, Tuple
 import heapq
@@ -6,10 +21,10 @@ from .graph import Graph
 from .models import AircraftConfig, TravelSegment
 
 
-# Estructuras locales para dijkstra_path (sin dependencias externas)
+# Local structures for dijkstra_path (without external dependencies)
 @dataclass(frozen=False)
 class _LocalRoute:
-    """Estructura local que representa una ruta aérea sin importar de models."""
+    """Local structure representing an airline route without importing from models."""
     origin: str
     destination: str
     distance_km: float
@@ -21,7 +36,7 @@ class _LocalRoute:
 
 @dataclass
 class _LocalTravelSegment:
-    """Estructura local que representa un segmento de viaje sin importar de models."""
+    """Local structure representing a travel segment without importing from models."""
     origin: str
     destination: str
     aircraft: str
@@ -31,7 +46,20 @@ class _LocalTravelSegment:
 
 
 def _weight_for_route(route: Any, aircraft_cfg: Dict[str, Any], criterion: str) -> Tuple[float, str, float, float]:
-    # Elegimos la mejor aeronave para el criterio actual en este tramo.
+    """
+    Calculate the weight of a route based on the optimization criterion.
+    
+    Selects the best aircraft type for the given criterion on this segment.
+    
+    Args:
+        route: Route object with distance and aircraft types
+        aircraft_cfg: Dictionary of aircraft configurations
+        criterion: Optimization criterion ('distancia', 'tiempo', or 'costo')
+        
+    Returns:
+        Tuple of (weight, best_aircraft, cost, time)
+    """
+    # Choose the best aircraft for the current criterion on this segment
     best_weight = float("inf")
     best_aircraft = ""
     best_cost = 0.0
@@ -71,6 +99,30 @@ def dijkstra_path(
     allowed_aircraft: Optional[Set[str]] = None,
     exclude_secondary: bool = False,
 ) -> List[_LocalTravelSegment]:
+    """
+    Find the optimal path between two airports using Dijkstra's algorithm.
+    
+    This implementation uses a priority queue (min-heap) to efficiently find
+    the shortest path based on the specified criterion.
+    
+    Algorithm: Dijkstra's Shortest Path
+    - Uses priority queue for O((V + E) log V) complexity
+    - Handles multiple aircraft types per route
+    - Supports filtering by aircraft type and airport type
+    - Skips blocked routes
+    
+    Args:
+        graph: Graph object representing the airline network
+        aircraft_cfg: Dictionary mapping aircraft names to their configurations
+        origin: Origin airport IATA code
+        destination: Destination airport IATA code
+        criterion: Optimization criterion ('distancia', 'tiempo', or 'costo')
+        allowed_aircraft: Optional set of allowed aircraft types
+        exclude_secondary: If True, exclude non-hub airports from path
+        
+    Returns:
+        List of travel segments representing the optimal path, empty if no path exists
+    """
     dist: Dict[str, float] = {origin: 0.0}
     prev: Dict[str, Tuple[str, str, float, float, float]] = {}
     queue: List[Tuple[float, str]] = [(0.0, origin)]

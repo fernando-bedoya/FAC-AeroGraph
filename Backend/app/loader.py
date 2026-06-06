@@ -56,6 +56,8 @@ def load_graph_from_json(path: str) -> Tuple[Graph, Dict[str, AircraftConfig], D
             is_hub=bool(node["esHub"]),
             lodging_cost=float(node["costoAlojamiento"]),
             food_cost=float(node["costoAlimentacion"]),
+            lat=float(node.get("latitud", 0)),
+            lon=float(node.get("longitud", 0)),
             activities=activities,
             jobs=jobs,
         )

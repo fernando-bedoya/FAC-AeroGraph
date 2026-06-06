@@ -27,5 +27,7 @@ class Airport:
     is_hub: bool
     lodging_cost: float
     food_cost: float
+    lat: float = 0.0
+    lon: float = 0.0
     activities: List[Activity] = field(default_factory=list)
     jobs: List[Job] = field(default_factory=list)

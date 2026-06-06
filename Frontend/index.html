@@ -3,39 +3,26 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>FAC AeroGraph | SkyRoute Planner</title>
-  <link id="appFavicon" rel="icon" type="image/png" href="assets/img/logotipos.png" />
+  <title>SkyRoute Planner</title>
+  <link rel="icon" type="image/png" href="assets/img/logotipos.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="styles.css" />
   <script src="https://d3js.org/d3.v7.min.js"></script>
+  <script src="https://unpkg.com/topojson-client@3"></script>
 </head>
 <body>
-  <div id="splash" class="splash-screen" aria-hidden="true">
-    <div class="splash-card">
-      <div class="logo-focus logo-focus-loader">
-        <img src="assets/img/logotipos.png" alt="Logo FAC AeroGraph" />
-      </div>
-      <p class="splash-tag">FAC AeroGraph</p>
-      <p class="splash-sub">Rutas inteligentes, decisiones eficientes</p>
-    </div>
-  </div>
-
-  <div class="bg-orb orb-a"></div>
-  <div class="bg-orb orb-b"></div>
-
   <header class="topbar">
     <div class="brand-copy">
-      <p class="brand-tag">FAC Airways</p>
+      <p class="brand-tag">Proyecto Grafos</p>
       <h1>SkyRoute Planner</h1>
-      <p class="sub">Proyecto academico de grafos: rutas dirigidas, costo, tiempo y distancia.</p>
+      <p class="sub">Optimizacion de rutas aereas con grafos dirigidos ponderados.</p>
     </div>
     <figure class="logo-showcase">
       <div class="logo-focus">
-        <img src="assets/img/logotipos.png" alt="Logo principal FAC AeroGraph" />
+        <img src="assets/img/logotipos.png" alt="Logo" />
       </div>
-      <figcaption>FAC AeroGraph</figcaption>
     </figure>
   </header>
 
@@ -51,42 +38,20 @@
 
       <section>
         <h2>Ruta por criterio</h2>
-        <label>Origen
-          <select id="origin"></select>
-        </label>
-        <label>Destino
-          <select id="destination"></select>
-        </label>
+        <label>Origen <select id="origin"></select></label>
+        <label>Destino <select id="destination"></select></label>
         <label>Criterios
           <div class="criteria-selector">
-            <label class="checkbox-item">
-              <input type="checkbox" class="criteria-checkbox" value="distancia" checked />
-              <span>Distancia</span>
-            </label>
-            <label class="checkbox-item">
-              <input type="checkbox" class="criteria-checkbox" value="tiempo" checked />
-              <span>Tiempo</span>
-            </label>
-            <label class="checkbox-item">
-              <input type="checkbox" class="criteria-checkbox" value="costo" checked />
-              <span>Costo</span>
-            </label>
+            <label class="checkbox-item"><input type="checkbox" class="criteria-checkbox" value="distancia" checked /><span>Distancia</span></label>
+            <label class="checkbox-item"><input type="checkbox" class="criteria-checkbox" value="tiempo" checked /><span>Tiempo</span></label>
+            <label class="checkbox-item"><input type="checkbox" class="criteria-checkbox" value="costo" checked /><span>Costo</span></label>
           </div>
         </label>
-        <label>Tipos de transporte
+        <label>Transporte
           <div class="aircraft-selector">
-            <label class="checkbox-item">
-              <input type="checkbox" class="aircraft-checkbox" value="Avion Comercial" checked />
-              <span>Avión Comercial</span>
-            </label>
-            <label class="checkbox-item">
-              <input type="checkbox" class="aircraft-checkbox" value="Avion Regional" checked />
-              <span>Avión Regional</span>
-            </label>
-            <label class="checkbox-item">
-              <input type="checkbox" class="aircraft-checkbox" value="Helice" checked />
-              <span>Hélice</span>
-            </label>
+            <label class="checkbox-item"><input type="checkbox" class="aircraft-checkbox" value="Avion Comercial" checked /><span>Avion Comercial</span></label>
+            <label class="checkbox-item"><input type="checkbox" class="aircraft-checkbox" value="Avion Regional" checked /><span>Avion Regional</span></label>
+            <label class="checkbox-item"><input type="checkbox" class="aircraft-checkbox" value="Helice" checked /><span>Helice</span></label>
           </div>
         </label>
         <label><input type="checkbox" id="excludeSecondary" /> Excluir secundarios</label>
@@ -95,51 +60,68 @@
 
       <section>
         <h2>Plan basico</h2>
-        <label>Origen
-          <select id="originBasic"></select>
-        </label>
-        <label>Presupuesto USD
-          <input id="budget" type="number" value="700" />
-        </label>
-        <label>Tiempo total (horas)
-          <input id="timeHours" type="number" value="28" />
-        </label>
+        <label>Origen <select id="originBasic"></select></label>
+        <label>Presupuesto USD <input id="budget" type="number" value="700" /></label>
+        <label>Tiempo (horas) <input id="timeHours" type="number" value="28" /></label>
         <button id="btnBasic">Simular plan basico</button>
       </section>
 
       <section>
         <h2>Planificacion dinamica</h2>
-        <label>Origen
-          <select id="originDynamic"></select>
-        </label>
-        <label>Presupuesto USD
-          <input id="dynamicBudget" type="number" value="700" />
-        </label>
-        <label>Tiempo total (horas)
-          <input id="dynamicTimeHours" type="number" value="28" />
-        </label>
+        <label>Origen <select id="originDynamic"></select></label>
+        <label>Presupuesto USD <input id="dynamicBudget" type="number" value="700" /></label>
+        <label>Tiempo (horas) <input id="dynamicTimeHours" type="number" value="28" /></label>
         <button id="btnDynamicStart">Iniciar sesion</button>
         <button id="btnDynamicRefresh" class="ghost">Actualizar estado</button>
         <button id="btnDynamicFinish" class="ghost">Finalizar sesion</button>
-        <button id="btnGenerateReport" class="btn-report">📋 Generar Reporte Final</button>
+        <button id="btnGenerateReport" class="btn-report">Generar Reporte</button>
       </section>
 
+      <section>
+        <h2>Configuracion de aeronaves</h2>
+        <div class="aircraft-config">
+          <div class="aircraft-item">
+            <label>Avion Comercial
+              <div class="aircraft-inputs">
+                <input type="number" id="costAvionComercial" placeholder="USD/km" step="0.01" value="0.18" />
+                <input type="number" id="timeAvionComercial" placeholder="min/km" step="0.1" value="0.7" />
+              </div>
+            </label>
+          </div>
+          <div class="aircraft-item">
+            <label>Avion Regional
+              <div class="aircraft-inputs">
+                <input type="number" id="costAvionRegional" placeholder="USD/km" step="0.01" value="0.25" />
+                <input type="number" id="timeAvionRegional" placeholder="min/km" step="0.1" value="1.1" />
+              </div>
+            </label>
+          </div>
+          <div class="aircraft-item">
+            <label>Helice
+              <div class="aircraft-inputs">
+                <input type="number" id="costHelice" placeholder="USD/km" step="0.01" value="0.12" />
+                <input type="number" id="timeHelice" placeholder="min/km" step="0.1" value="2.5" />
+              </div>
+            </label>
+          </div>
+        </div>
+        <button id="btnUpdateAircraft">Aplicar cambios</button>
+      </section>
 
       <section>
         <h2>Interrupciones</h2>
         <label>Ruta a afectar
-          <div class="route-input-group" style="display: flex; gap: 8px;">
+          <div style="display: flex; gap: 6px;">
             <input id="blockOrigin" placeholder="Origen" style="width: 50%; text-transform: uppercase;" />
             <input id="blockDestination" placeholder="Destino" style="width: 50%; text-transform: uppercase;" />
           </div>
         </label>
-        <div style="display: flex; gap: 8px; margin-top: 8px;">
-          <button id="btnBlock" style="background-color: var(--danger, #ff4757); color: white; border: none;">Bloquear</button>
+        <div style="display: flex; gap: 6px; margin-top: 6px;">
+          <button id="btnBlock" style="background: var(--danger);">Bloquear</button>
           <button id="btnUnblock" class="ghost">Desbloquear</button>
         </div>
       </section>
-
-     </aside>
+    </aside>
 
     <section class="panel graph-wrap">
       <div id="graph"></div>
@@ -148,58 +130,56 @@
     <aside class="panel details">
       <h2>Detalle</h2>
       <div id="airportInfo" class="info-box">Selecciona un aeropuerto para ver informacion.</div>
+
       <h2>Rutas</h2>
       <div id="routesContainer" class="routes-container"></div>
+
       <h2>Planificacion dinamica</h2>
       <div id="dynamicPanel" class="dynamic-panel">
         <div id="dynamicState" class="info-box">Inicia una sesion para ver el estado.</div>
-        <div class="dynamic-grid">
-          <div class="dynamic-card">
-            <h3>Actividades</h3>
-            <div id="dynamicActivities"></div>
-            <button id="btnDynamicApplyActivities" class="ghost">Registrar actividades</button>
-          </div>
-          <div class="dynamic-card">
-            <h3>Trabajos</h3>
-            <div id="dynamicJobs"></div>
-            <label>Horas
-              <input id="dynamicJobHours" type="number" min="1" value="2" />
-            </label>
-            <button id="btnDynamicWork">Registrar trabajo</button>
-          </div>
-          <div class="dynamic-card">
-            <h3>Vuelos</h3>
-            <div id="dynamicFlights"></div>
-            <button id="btnDynamicFly">Confirmar vuelo</button>
-          </div>
+        <div class="dynamic-card">
+          <h3>Actividades</h3>
+          <div id="dynamicActivities"></div>
+          <button id="btnDynamicApplyActivities" class="ghost">Registrar actividades</button>
+        </div>
+        <div class="dynamic-card">
+          <h3>Trabajos</h3>
+          <div id="dynamicJobs"></div>
+          <label>Horas <input id="dynamicJobHours" type="number" min="1" value="2" /></label>
+          <button id="btnDynamicWork">Registrar trabajo</button>
+        </div>
+        <div class="dynamic-card">
+          <h3>Vuelos</h3>
+          <div id="dynamicFlights"></div>
+          <button id="btnDynamicFly">Confirmar vuelo</button>
         </div>
         <h3>Historial</h3>
         <div id="dynamicSteps" class="dynamic-steps"></div>
       </div>
-      <h2>JSON (DEBUG)</h2>
+
+      <h2>Debug</h2>
       <pre id="output"></pre>
     </aside>
   </main>
 
-  <!-- Modal de Reporte Final -->
-  <div id="report-modal" class="report-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="report-modal-title">
+  <!-- Modal de Reporte -->
+  <div id="report-modal" class="report-modal-overlay">
     <div class="report-modal-window">
       <div class="report-modal-header">
-        <h2 id="report-modal-title">📋 Reporte Final del Viaje</h2>
-        <div class="report-modal-actions">
-          <select id="report-export-format" class="export-format-select" style="padding: 0.5rem; border-radius: 4px; background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.2);">
-            <option value="csv" style="color: black;">CSV</option>
-            <option value="json" style="color: black;">JSON</option>
+        <h2>Reporte Final del Viaje</h2>
+        <div style="display: flex; gap: 8px; align-items: center;">
+          <select id="report-export-format" class="export-format-select">
+            <option value="csv">CSV</option>
+            <option value="json">JSON</option>
           </select>
-          <button id="report-export-btn" class="btn-export-csv">📥 Exportar</button>
-          <button id="report-modal-close" class="report-modal-close" aria-label="Cerrar">&times;</button>
+          <button id="report-export-btn" class="btn-export-csv">Exportar</button>
+          <button id="report-modal-close" class="report-modal-close">&times;</button>
         </div>
       </div>
       <div id="report-modal-content" class="report-modal-body"></div>
     </div>
   </div>
 
-  <!-- Carga el módulo principal de la aplicación -->
   <script type="module" src="app.js"></script>
 </body>
 </html>
