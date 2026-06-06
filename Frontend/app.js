@@ -275,12 +275,33 @@ async function handleDynamicWork() {
   try {
     const jobRadio = document.querySelector("input[name='dynamic-job']:checked");
     if (!jobRadio) { ui.showRouteError("Selecciona un trabajo"); return; }
+    
+    const maxHours = Number(jobRadio.dataset.maxHours);
     const hours = Number($("dynamicJobHours").value);
-    const state = await sim.work(jobRadio.value, hours);
-    await refreshDynamicUI(state);
-    ui.showDebug(state);
+    if (hours > maxHours) {
+      ui.showAlertModal("⚠️ Límite de Horas Excedido", `Las horas ingresadas (${hours}h) superan las horas máximas permitidas para este trabajo (máximo ${maxHours}h).`);
+      return;
+    }
+
+    // Validar tiempo restante insuficiente
+    const state = sim.getState();
+    const durationMin = hours * 60;
+    if (state && state.time_left_min < durationMin) {
+      const remainingHours = (state.time_left_min / 60).toFixed(1);
+      ui.showAlertModal("⚠️ Tiempo Insuficiente", `No tienes suficiente tiempo restante en la sesión para trabajar por ${hours} horas (te quedan ${remainingHours}h).`);
+      return;
+    }
+
+    const newState = await sim.work(jobRadio.value, hours);
+    await refreshDynamicUI(newState);
+    ui.showDebug(newState);
   } catch (err) {
-    ui.showRouteError(err.message);
+    const msg = err.message.replace("API Error: ", "");
+    if (msg.toLowerCase().includes("horas") || msg.toLowerCase().includes("exceden") || msg.toLowerCase().includes("tiempo") || msg.toLowerCase().includes("suficiente")) {
+      ui.showAlertModal("⚠️ Error de Validación", msg);
+    } else {
+      ui.showRouteError(msg);
+    }
   }
 }
 

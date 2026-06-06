@@ -192,7 +192,7 @@ export function showJobs(jobs) {
   }
   el.innerHTML = jobs.map((j) => `
     <label class="dynamic-item">
-      <input type="radio" name="dynamic-job" value="${j.name}" />
+      <input type="radio" name="dynamic-job" value="${j.name}" data-max-hours="${j.max_hours}" />
       <span>${j.name}</span>
       <span class="dynamic-meta">$${j.hourly_rate.toFixed(2)}/h - max ${j.max_hours}h</span>
     </label>`).join("");
