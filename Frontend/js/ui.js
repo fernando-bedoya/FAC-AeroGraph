@@ -52,12 +52,23 @@ function renderRouteCard(plan, title) {
   if (!plan || !plan.segments) return "";
   const segments = plan.segments.map((s, i) => renderSegment(s, i, plan.segments)).join("");
   const destinations = plan.visited_airports.map((a) => `<span class="dest-badge">${a}</span>`).join("");
+  
+  const totalDistance = plan.total_distance_km !== undefined 
+    ? plan.total_distance_km 
+    : plan.segments.reduce((sum, s) => sum + (s.distance_km || 0), 0);
+    
+  const totalTimeMin = plan.total_time_min !== undefined
+    ? plan.total_time_min
+    : plan.segments.reduce((sum, s) => sum + (s.segment_time_min || 0), 0);
+
   return `
     <div class="route-card">
       <div class="route-title">${title}</div>
       <div class="route-stats">
         <div class="stat-item"><div class="stat-label">Destinos</div><div class="stat-value">${plan.visited_airports.length - 1}</div></div>
         <div class="stat-item"><div class="stat-label">Costo</div><div class="stat-value cost-display">${fmtCost(plan.total_cost)}</div></div>
+        <div class="stat-item"><div class="stat-label">Distancia</div><div class="stat-value distance-display">${totalDistance.toFixed(1)} km</div></div>
+        <div class="stat-item"><div class="stat-label">Tiempo Total</div><div class="stat-value time-display">${fmtTime(totalTimeMin)}</div></div>
       </div>
       <div class="segments-list">${segments}</div>
       <div class="destination-list">
@@ -95,12 +106,20 @@ export function showSuggestedRoute(suggestedRoute) {
     </div>`).join("");
 
   const badges = airports.map((a) => `<span class="dest-badge">${a}</span>`).join("");
+  
+  const totalDistance = segments.reduce((sum, s) => sum + (s.distance_km || 0), 0);
+  const totalTimeMin = suggestedRoute.total_time_min !== undefined
+    ? suggestedRoute.total_time_min
+    : segments.reduce((sum, s) => sum + (s.segment_time_min || 0), 0);
+
   el.innerHTML = `
     <div class="route-card">
       <div class="route-title">Ruta Sugerida</div>
       <div class="route-stats">
         <div class="stat-item"><div class="stat-label">Destinos</div><div class="stat-value">${airports.length - 1}</div></div>
-        <div class="stat-item"><div class="stat-label">Costo</div><div class="stat-value cost-display">${(suggestedRoute.total_cost || 0).toFixed(2)}</div></div>
+        <div class="stat-item"><div class="stat-label">Costo</div><div class="stat-value cost-display">${fmtCost(suggestedRoute.total_cost || 0)}</div></div>
+        <div class="stat-item"><div class="stat-label">Distancia</div><div class="stat-value distance-display">${totalDistance.toFixed(1)} km</div></div>
+        <div class="stat-item"><div class="stat-label">Tiempo Total</div><div class="stat-value time-display">${fmtTime(totalTimeMin)}</div></div>
       </div>
       <div class="segments-list">${segsHtml}</div>
       <div class="destination-list"><strong>Itinerario</strong><div class="destination-badges">${badges}</div></div>
@@ -120,6 +139,7 @@ export function showOptimizedRoutes(allRoutes, origin, criteria) {
       segments: route.segments || [],
       total_cost: route.total_cost || 0,
       total_time_min: route.total_time_min || 0,
+      total_distance_km: route.total_distance_km || 0,
     };
     html += renderRouteCard(plan, labels[criterion] || `Optima por ${criterion}`);
   }
