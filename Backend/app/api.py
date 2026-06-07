@@ -73,8 +73,17 @@ def _dynamic_state_to_dict(state):
 @router.post("/simulation/fly")
 def fly(origin: str, destination: str, plan_id: str):
     """
-    Endpoint para iniciar una transición de vuelo.
-    Valida que la ruta sea posible antes de que el frontend inicie la animación.
+    Approve a flight transition before frontend animation begins.
+
+    Validates that the requested route exists and is not blocked.
+
+    Args:
+        origin: Departure airport IATA code.
+        destination: Arrival airport IATA code.
+        plan_id: Simulation plan identifier.
+
+    Returns:
+        Dict with approval message and estimated flight time in minutes.
     """
     _require_graph()
     graph = app_state.graph
@@ -94,9 +103,6 @@ def fly(origin: str, destination: str, plan_id: str):
     if not route:
         return JSONResponse(status_code=404, content={"error": "Route not found"})
 
-    # Aquí podrías tener una lógica más compleja para calcular el tiempo real
-    # basado en la aeronave, pero por ahora usamos una aproximación.
-    # Suponemos que planner tiene una configuración de aeronave por defecto.
     planner = app_state.planner
     assert planner is not None
     aircraft = planner.get_default_aircraft()
@@ -111,35 +117,34 @@ def fly(origin: str, destination: str, plan_id: str):
 @router.post("/simulation/arrive")
 def arrive(destination: str, plan_id: str):
     """
-    Endpoint para confirmar la llegada a un destino.
-    El frontend llama a esto cuando la animación de vuelo ha concluido.
-    """
-    # Aquí es donde actualizas el estado de la simulación.
-    # Por ahora, simplemente confirmamos la llegada.
-    # La lógica del DynamicEngine se activaría aquí para aplicar costos, etc.
-    
-    # sim_state = active_simulations.get(plan_id)
-    # if not sim_state:
-    #     return jsonify({"error": "Simulation plan not found."}), 404
-    #
-    # engine = DynamicEngine(graph, planner, sim_state)
-    # new_state = engine.advance_to(destination)
-    # active_simulations[plan_id] = new_state
+    Confirm arrival at a destination after frontend animation completes.
 
+    Args:
+        destination: Arrival airport IATA code.
+        plan_id: Simulation plan identifier.
+
+    Returns:
+        Dict with confirmation message.
+    """
     return {
         "message": f"Arrival at {destination} confirmed.",
-        # "newState": new_state.to_dict() # Devolverías el estado actualizado
     }
 
 
 @router.post("/simulation/interrupt")
 def interrupt(payload: InterruptRequest):
     """
-    Endpoint para gestionar una interrupción de ruta.
+    Handle a route interruption during an active dynamic session.
 
-    Bloquea la ruta, detecta si el viajero está en tránsito,
-    lo redirige al aeropuerto de origen del tramo si aplica,
-    y recalcula alternativas disponibles.
+    Blocks the route in the graph, detects whether the traveller is
+    mid-flight on that route, redirects them if necessary, and
+    recalculates available alternatives.
+
+    Args:
+        payload: InterruptRequest with session_id, origin, destination.
+
+    Returns:
+        Dict with interruption result, redirection info, and updated state.
     """
     _require_graph()
     graph = app_state.graph
@@ -327,6 +332,18 @@ def best_route(payload: BestRouteRequest):
 
 @router.post("/dynamic/start")
 def dynamic_start(payload: DynamicStartRequest):
+    """
+    Start a new dynamic planning session (R2.3).
+
+    Creates a session with the given origin, budget, and time, calculates
+    the optimal suggested route, and returns the initial session state.
+
+    Args:
+        payload: DynamicStartRequest with origin, initial_budget, total_time_hours.
+
+    Returns:
+        Complete session state dictionary.
+    """
     _require_graph()
     graph = app_state.graph
     assert graph is not None
@@ -349,6 +366,15 @@ def dynamic_start(payload: DynamicStartRequest):
 
 @router.get("/dynamic/state/{session_id}")
 def dynamic_state(session_id: str):
+    """
+    Get the current state of a dynamic planning session.
+
+    Args:
+        session_id: UUID of the session.
+
+    Returns:
+        Complete session state dictionary.
+    """
     try:
         state = get_dynamic_state(session_id, app_state.dynamic_sessions)
     except ValueError as exc:
@@ -359,6 +385,16 @@ def dynamic_state(session_id: str):
 
 @router.get("/dynamic/activities/{session_id}")
 def dynamic_activities(session_id: str):
+    """
+    List optional activities available at the traveller's current airport (R2.3.a).
+
+    Args:
+        session_id: UUID of the session.
+
+    Returns:
+        Dict with "activities" list, each with name, kind, duration_min,
+        cost_usd, and affordable flag.
+    """
     _require_graph()
     graph = app_state.graph
     assert graph is not None
@@ -374,6 +410,18 @@ def dynamic_activities(session_id: str):
 
 @router.post("/dynamic/activities/{session_id}")
 def dynamic_choose_activities(session_id: str, payload: DynamicActivitiesRequest):
+    """
+    Apply selected optional activities to the session (R2.3.a).
+
+    Deducts cost and time for each chosen activity.
+
+    Args:
+        session_id: UUID of the session.
+        payload: DynamicActivitiesRequest with list of activity names.
+
+    Returns:
+        Updated session state dictionary.
+    """
     _require_graph()
     graph = app_state.graph
     assert graph is not None
@@ -389,6 +437,17 @@ def dynamic_choose_activities(session_id: str, payload: DynamicActivitiesRequest
 
 @router.get("/dynamic/jobs/{session_id}")
 def dynamic_jobs(session_id: str):
+    """
+    List temporary jobs available at the traveller's current airport (R2.3.b).
+
+    Only returns jobs when budget is below the eligibility threshold.
+
+    Args:
+        session_id: UUID of the session.
+
+    Returns:
+        Dict with "jobs" list, each with name, hourly_rate, max_hours.
+    """
     _require_graph()
     graph = app_state.graph
     assert graph is not None
@@ -404,6 +463,19 @@ def dynamic_jobs(session_id: str):
 
 @router.post("/dynamic/work/{session_id}")
 def dynamic_work(session_id: str, payload: DynamicWorkRequest):
+    """
+    Perform temporary work to earn income (R2.3.b).
+
+    Advances time, credits income, and applies any triggered
+    mandatory food/lodging costs.
+
+    Args:
+        session_id: UUID of the session.
+        payload: DynamicWorkRequest with job_name and hours.
+
+    Returns:
+        Updated session state dictionary.
+    """
     _require_graph()
     graph = app_state.graph
     assert graph is not None
@@ -425,6 +497,18 @@ def dynamic_work(session_id: str, payload: DynamicWorkRequest):
 
 @router.get("/dynamic/flight-options/{session_id}")
 def dynamic_flight_options(session_id: str):
+    """
+    List available flight options from the traveller's current airport (R2.3.c).
+
+    Filters blocked routes and visited destinations.
+
+    Args:
+        session_id: UUID of the session.
+
+    Returns:
+        Dict with "options" list, each with origin, destination, aircraft,
+        distance_km, segment_cost, segment_time_min, min_stay_min, subsidized.
+    """
     _require_graph()
     graph = app_state.graph
     assert graph is not None
@@ -440,6 +524,19 @@ def dynamic_flight_options(session_id: str):
 
 @router.post("/dynamic/fly/{session_id}")
 def dynamic_fly(session_id: str, payload: DynamicFlyRequest):
+    """
+    Execute a complete flight in a single step (R2.3.c).
+
+    Applies all costs, updates location, and clears transit state
+    atomically. Use this endpoint when no frontend animation is needed.
+
+    Args:
+        session_id: UUID of the session.
+        payload: DynamicFlyRequest with destination and aircraft.
+
+    Returns:
+        Updated session state dictionary.
+    """
     _require_graph()
     graph = app_state.graph
     assert graph is not None
@@ -462,6 +559,20 @@ def dynamic_fly(session_id: str, payload: DynamicFlyRequest):
 
 @router.post("/dynamic/fly/start/{session_id}")
 def dynamic_fly_start(session_id: str, payload: DynamicFlyRequest):
+    """
+    Initiate a flight (Phase 1 of the two-phase protocol, R2.3.c).
+
+    Validates and marks the traveller as in-transit without applying
+    costs. The frontend then runs the globe animation before calling
+    /dynamic/fly/arrive to complete the flight.
+
+    Args:
+        session_id: UUID of the session.
+        payload: DynamicFlyRequest with destination and aircraft.
+
+    Returns:
+        Updated session state with in_transit flags set.
+    """
     _require_graph()
     graph = app_state.graph
     assert graph is not None
@@ -484,6 +595,18 @@ def dynamic_fly_start(session_id: str, payload: DynamicFlyRequest):
 
 @router.post("/dynamic/fly/arrive/{session_id}")
 def dynamic_fly_arrive(session_id: str):
+    """
+    Complete an in-progress flight (Phase 2 of the two-phase protocol, R2.3.c).
+
+    Called after the frontend animation finishes. Applies flight cost
+    and time, updates location, and clears transit state.
+
+    Args:
+        session_id: UUID of the session.
+
+    Returns:
+        Updated session state dictionary.
+    """
     _require_graph()
     graph = app_state.graph
     assert graph is not None
@@ -504,6 +627,15 @@ def dynamic_fly_arrive(session_id: str):
 
 @router.post("/dynamic/finish/{session_id}")
 def dynamic_finish(session_id: str):
+    """
+    End a dynamic planning session and release its resources.
+
+    Args:
+        session_id: UUID of the session to finish.
+
+    Returns:
+        Confirmation message.
+    """
     try:
         end_dynamic_session(session_id, app_state.dynamic_sessions)
     except ValueError as exc:
@@ -514,6 +646,18 @@ def dynamic_finish(session_id: str):
 
 @router.get("/dynamic/report/{session_id}")
 def dynamic_report(session_id: str):
+    """
+    Generate the final trip report for a completed session (R2.5).
+
+    Aggregates all steps into structured sections: destinations,
+    flights, activities, jobs, mandatory fees, and financial totals.
+
+    Args:
+        session_id: UUID of the session.
+
+    Returns:
+        Complete report dictionary.
+    """
     _require_graph()
     graph = app_state.graph
     assert graph is not None
@@ -529,6 +673,18 @@ def dynamic_report(session_id: str):
 
 @router.get("/dynamic/report/export/{session_id}")
 def dynamic_report_export(session_id: str, format: str = "csv"):
+    """
+    Export the final trip report in JSON or CSV format (R2.5).
+
+    Triggers a file download with the specified format.
+
+    Args:
+        session_id: UUID of the session.
+        format: Output format ("csv" or "json"), defaults to "csv".
+
+    Returns:
+        File download response.
+    """
     _require_graph()
     graph = app_state.graph
     assert graph is not None

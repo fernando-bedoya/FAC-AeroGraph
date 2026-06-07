@@ -1,3 +1,11 @@
+"""
+Optional activities management for dynamic planning (Requirement 2.3.a).
+
+Travellers can choose from optional activities (tours, museums, etc.)
+available at their current airport. Each activity consumes time and
+budget; affordability is projected including mandatory events.
+"""
+
 from typing import Dict, List
 
 from ..graph import Graph
@@ -10,6 +18,21 @@ def list_dynamic_activities(
     rules: Dict[str, float],
     state: DynamicState,
 ) -> List[Dict[str, float]]:
+    """
+    List optional activities available at the traveller's current airport.
+
+    Each activity is annotated with an affordability flag that accounts
+    for the activity's cost plus any mandatory food/lodging costs that
+    would be triggered during its duration.
+
+    Args:
+        graph: The airline route graph.
+        rules: System rules dict.
+        state: Current dynamic session state.
+
+    Returns:
+        List of dicts with keys: name, kind, duration_min, cost_usd, affordable.
+    """
     airport = graph.get_airport(state.current_airport)
     if not airport:
         return []
@@ -44,6 +67,25 @@ def choose_dynamic_activities(
     state: DynamicState,
     activity_names: List[str],
 ) -> DynamicState:
+    """
+    Apply a set of chosen optional activities to the session state.
+
+    Validates each activity exists at the current airport, then applies
+    cost and time via apply_cost_and_time(). Each activity increments
+    the stay counter and may trigger mandatory food/lodging events.
+
+    Args:
+        graph: The airline route graph.
+        rules: System rules dict.
+        state: Current dynamic session state (mutated in-place).
+        activity_names: List of activity names to perform.
+
+    Returns:
+        Updated DynamicState with costs deducted and steps logged.
+
+    Raises:
+        DynamicPlanError: If the airport or an activity is not found.
+    """
     airport = graph.get_airport(state.current_airport)
     if not airport:
         raise DynamicPlanError("Aeropuerto actual no existe")

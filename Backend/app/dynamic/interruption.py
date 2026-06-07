@@ -1,9 +1,10 @@
 """
-Servicio de Interrupción de Vuelos (R2.4)
+Route interruption service (Requirement 2.4).
 
-Responsabilidad única: gestionar interrupciones de rutas aéreas durante
-el tiempo de ejecución, incluyendo bloqueo, redirección del viajero
-y recalculación de alternativas.
+Handles real-time route disruptions by blocking the affected edge,
+detecting whether the traveller is currently mid-flight on that route,
+redirecting them to the origin airport if so, and recalculating
+alternative flight options and the suggested route.
 """
 
 from typing import Dict, List, Optional
@@ -15,17 +16,23 @@ from .flights import list_dynamic_flight_options
 from .routing import calculate_suggested_route
 
 
-
-
+# ---------------------------------------------------------------------------
+# Core interruption logic
 # ---------------------------------------------------------------------------
 # Lógica principal de interrupción
 # ---------------------------------------------------------------------------
 
 def _block_route(graph: Graph, origin: str, destination: str) -> bool:
     """
-    Bloquea una ruta en el grafo.
+    Block a route in the graph by toggling its status.
 
-    Retorna True si la ruta existía y fue bloqueada, False si no se encontró.
+    Args:
+        graph: The airline route graph.
+        origin: Origin airport IATA code of the route to block.
+        destination: Destination airport IATA code.
+
+    Returns:
+        True if the route existed and was blocked, False if not found.
     """
     route = graph.toggle_route_status(origin, destination, block=True)
     return route is not None
@@ -37,10 +44,17 @@ def _is_traveler_on_blocked_route(
     destination: str,
 ) -> bool:
     """
-    Determina si el viajero está actualmente en tránsito en la ruta bloqueada.
+    Check whether the traveller is currently mid-flight on the blocked route.
 
-    Compara los extremos del tramo actual con los de la ruta que se
-    está interrumpiendo.
+    Compares the in-progress flight endpoints with the route being interrupted.
+
+    Args:
+        state: Current dynamic session state.
+        origin: Origin of the route being blocked.
+        destination: Destination of the route being blocked.
+
+    Returns:
+        True if the traveller is in transit on exactly this route.
     """
     if not state.in_transit:
         return False
@@ -49,27 +63,29 @@ def _is_traveler_on_blocked_route(
 
 def _redirect_to_origin(state: DynamicState) -> str:
     """
-    Redirige al viajero al aeropuerto de origen del tramo interrumpido.
+    Redirect the traveller back to the origin airport of the interrupted leg.
 
-    Actualiza current_airport al punto de partida del vuelo y limpia
-    el estado de tránsito. Registra un DynamicStep de emergencia.
+    Updates current_airport, clears transit state, and logs an emergency
+    redirection step.
 
-    Retorna el aeropuerto al que fue redirigido.
+    Args:
+        state: Current dynamic session state (mutated in-place).
+
+    Returns:
+        IATA code of the airport to which the traveller was redirected.
     """
     redirect_airport = state.transit_from
     blocked_destination = state.transit_to
 
-    # Redirigir al aeropuerto de origen del tramo
     state.current_airport = redirect_airport
 
-    # Registrar paso de redirección de emergencia
     state.steps.append(
         DynamicStep(
             airport_id=redirect_airport,
             action="redireccion_emergencia",
             detail=(
-                f"Vuelo interrumpido. Ruta {redirect_airport}→{blocked_destination} "
-                f"bloqueada en tránsito. Viajero redirigido a {redirect_airport}."
+                f"Flight interrupted. Route {redirect_airport}→{blocked_destination} "
+                f"blocked mid-transit. Traveller redirected to {redirect_airport}."
             ),
             budget_after=state.budget_usd,
             time_left_min=state.time_left_min,
@@ -80,7 +96,6 @@ def _redirect_to_origin(state: DynamicState) -> str:
         )
     )
 
-    # Limpiar estado de tránsito
     state.clear_transit()
 
     return redirect_airport
@@ -92,14 +107,19 @@ def _record_block_event(
     destination: str,
 ) -> None:
     """
-    Registra un paso informativo cuando se bloquea una ruta que no afecta
-    al viajero directamente (no está en tránsito en esa ruta).
+    Log an informational step when a route is blocked but the traveller
+    is not affected (not in transit on that route).
+
+    Args:
+        state: Current dynamic session state (mutated in-place).
+        origin: Origin of the blocked route.
+        destination: Destination of the blocked route.
     """
     state.steps.append(
         DynamicStep(
             airport_id=state.current_airport,
             action="ruta_bloqueada",
-            detail=f"Ruta {origin}→{destination} bloqueada. El viajero no fue afectado.",
+            detail=f"Route {origin}→{destination} blocked. Traveller was not affected.",
             budget_after=state.budget_usd,
             time_left_min=state.time_left_min,
             metadata={
@@ -116,7 +136,15 @@ def _recalculate_flight_options(
     state: DynamicState,
 ) -> List[Dict]:
     """
-    Calcula las opciones de vuelo disponibles desde la posición actual.
+    Recalculate available flight options from the traveller's current position.
+
+    Args:
+        graph: The airline route graph.
+        aircraft_cfg: Aircraft configuration dictionary.
+        state: Current dynamic session state.
+
+    Returns:
+        List of flight option dicts.
     """
     return list_dynamic_flight_options(graph, aircraft_cfg, state)
 
@@ -127,10 +155,18 @@ def _recalculate_suggested_route(
     state: DynamicState,
 ) -> Dict:
     """
-    Recalcula la ruta sugerida óptima desde la posición actual del viajero.
+    Recalculate the optimal suggested route from the traveller's current position.
 
-    Utiliza el presupuesto y tiempo restantes para generar una nueva
-    ruta sugerida que maximice destinos con el menor gasto.
+    Uses the remaining budget and time to generate a new suggested route
+    that maximises destination coverage at minimum cost.
+
+    Args:
+        graph: The airline route graph.
+        aircraft_cfg: Aircraft configuration dictionary.
+        state: Current dynamic session state (mutated in-place).
+
+    Returns:
+        Suggested route dictionary with airports, segments, total_cost.
     """
     new_suggested = calculate_suggested_route(
         graph=graph,
@@ -145,7 +181,7 @@ def _recalculate_suggested_route(
 
 
 # ---------------------------------------------------------------------------
-# Función orquestadora (punto de entrada público)
+# Public orchestrator function
 # ---------------------------------------------------------------------------
 
 def handle_interruption(
@@ -156,42 +192,39 @@ def handle_interruption(
     destination: str,
 ) -> Dict:
     """
-    Orquesta toda la lógica de una interrupción de ruta.
+    Orchestrate the full route interruption workflow.
 
-    Flujo:
-        1. Bloquea la ruta en el grafo
-        2. Detecta si el viajero está en tránsito en esa ruta
-        3. Si está en tránsito: redirige al aeropuerto de origen del tramo
-        4. Recalcula opciones de vuelo alternativas
-        5. Recalcula la ruta sugerida óptima
+    Flow:
+        1. Block the route in the graph.
+        2. Detect whether the traveller is mid-flight on that route.
+        3. If mid-flight: redirect to the leg's origin airport.
+        4. Recalculate alternative flight options.
+        5. Recalculate the optimal suggested route.
 
     Args:
-        graph: Grafo de rutas aéreas.
-        aircraft_cfg: Configuración de aeronaves por tipo.
-        state: Estado dinámico de la sesión del viajero.
-        origin: Origen de la ruta a bloquear.
-        destination: Destino de la ruta a bloquear.
+        graph: The airline route graph.
+        aircraft_cfg: Aircraft configuration dictionary.
+        state: Current dynamic session state (mutated in-place).
+        origin: Origin of the route to block.
+        destination: Destination of the route to block.
 
     Returns:
-        Diccionario con:
-            - blocked_route: la ruta que fue bloqueada
-            - was_redirected: si el viajero fue redirigido
-            - redirected_to: aeropuerto al que fue redirigido (o None)
-            - new_flight_options: opciones de vuelo desde posición actual
-            - suggested_route: nueva ruta sugerida recalculada
-            - state: estado actualizado del viajero
+        Dictionary with:
+            - blocked_route: the route that was blocked
+            - was_redirected: whether the traveller was redirected
+            - redirected_to: airport redirected to (or None)
+            - new_flight_options: flight options from current position
+            - suggested_route: newly calculated suggested route
 
     Raises:
-        ValueError: Si la ruta a bloquear no existe en el grafo.
+        ValueError: If the route to block does not exist in the graph.
     """
-    # 1. Bloquear la ruta
     route_blocked = _block_route(graph, origin, destination)
     if not route_blocked:
         raise ValueError(
             f"No se encontró la ruta {origin}→{destination} para bloquear."
         )
 
-    # 2. Detectar y manejar redirección
     was_redirected = False
     redirected_to = None
 
@@ -201,7 +234,6 @@ def handle_interruption(
     else:
         _record_block_event(state, origin, destination)
 
-    # 3. Recalcular alternativas
     new_flight_options = _recalculate_flight_options(
         graph, aircraft_cfg, state
     )

@@ -1,3 +1,13 @@
+"""
+Flight operations for dynamic planning (Requirement 2.3.c).
+
+Provides functions for listing available flight options, initiating a
+flight (marking the traveller as in-transit), and completing a flight
+(applying costs, updating location, and clearing transit state).
+Flights use a two-phase start/arrive protocol to allow frontend
+animation between the phases.
+"""
+
 from typing import Dict, List
 
 from ..graph import Graph
@@ -17,6 +27,22 @@ def list_dynamic_flight_options(
     aircraft_cfg: Dict[str, AircraftConfig],
     state: DynamicState,
 ) -> List[Dict[str, float]]:
+    """
+    List available flight options from the traveller's current airport.
+
+    Filters out blocked routes and already-visited destinations. For each
+    route and aircraft type, calculates the segment cost (including the
+    20% subsidised route cap check) and travel time.
+
+    Args:
+        graph: The airline route graph.
+        aircraft_cfg: Aircraft configuration dictionary.
+        state: Current dynamic session state.
+
+    Returns:
+        List of dicts with keys: origin, destination, aircraft, distance_km,
+        segment_cost, segment_time_min, min_stay_min, subsidized.
+    """
     options = []
     for route in graph.get_outgoing_routes(state.current_airport):
         if route.blocked:
@@ -57,6 +83,30 @@ def perform_dynamic_flight(
     destination: str,
     aircraft: str,
 ) -> DynamicState:
+    """
+    Execute a complete flight (single-phase, without animation gap).
+
+    Validates the route, enforces minimum stay, checks budget against
+    projected mandatory costs, applies the flight cost and time, updates
+    distance trackers, moves the traveller to the destination, and
+    clears transit state.
+
+    Args:
+        graph: The airline route graph.
+        aircraft_cfg: Aircraft configuration dictionary.
+        rules: System rules dict.
+        state: Current dynamic session state (mutated in-place).
+        destination: Destination airport IATA code.
+        aircraft: Aircraft type name for this segment.
+
+    Returns:
+        Updated DynamicState after the flight is completed.
+
+    Raises:
+        DynamicPlanError: If route is blocked, destination visited,
+            aircraft unavailable, subsidised cap exceeded, or budget
+            insufficient including projected costs.
+    """
     route = find_route(graph, state.current_airport, destination)
     if not route:
         raise DynamicPlanError("Ruta no encontrada")
@@ -91,7 +141,7 @@ def perform_dynamic_flight(
 
     seg_time = route.distance_km * cfg.time_per_km
 
-    # Validacion previa: presupuesto duro antes de confirmar el vuelo.
+    # Hard budget validation before confirming the flight
     _, _, mandatory_cost = estimate_mandatory_costs(
         state,
         seg_time,
@@ -104,7 +154,7 @@ def perform_dynamic_flight(
             "Presupuesto insuficiente por costos de alimentacion y alojamiento para completar el trayecto."
         )
 
-    # Marcar al viajero como en tránsito antes de iniciar el vuelo
+    # Mark traveller as in-transit before starting the flight
     state.mark_in_transit(state.current_airport, destination, aircraft)
 
     apply_cost_and_time(
@@ -139,7 +189,6 @@ def perform_dynamic_flight(
     state.stay_min = 0.0
     state.required_stay_min = float(route.min_stay_min)
 
-    # Limpiar estado de tránsito al completar el vuelo
     state.clear_transit()
 
     return state
@@ -153,6 +202,27 @@ def start_dynamic_flight(
     destination: str,
     aircraft: str,
 ) -> DynamicState:
+    """
+    Initiate a flight (Phase 1 of the two-phase protocol).
+
+    Validates the route, enforces minimum stay, checks budget projections,
+    and marks the traveller as in-transit WITHOUT applying costs or moving
+    the traveller. The frontend uses this to start the globe animation.
+
+    Args:
+        graph: The airline route graph.
+        aircraft_cfg: Aircraft configuration dictionary.
+        rules: System rules dict.
+        state: Current dynamic session state (mutated in-place).
+        destination: Destination airport IATA code.
+        aircraft: Aircraft type name.
+
+    Returns:
+        DynamicState with in_transit flags set.
+
+    Raises:
+        DynamicPlanError: Same validations as perform_dynamic_flight.
+    """
     route = find_route(graph, state.current_airport, destination)
     if not route:
         raise DynamicPlanError("Ruta no encontrada")
@@ -187,7 +257,7 @@ def start_dynamic_flight(
 
     seg_time = route.distance_km * cfg.time_per_km
 
-    # Validacion previa: presupuesto duro antes de confirmar el vuelo.
+    # Hard budget validation before confirming the flight
     _, _, mandatory_cost = estimate_mandatory_costs(
         state,
         seg_time,
@@ -200,7 +270,7 @@ def start_dynamic_flight(
             "Presupuesto insuficiente por costos de alimentacion y alojamiento para completar el trayecto."
         )
 
-    # Marcar al viajero como en tránsito antes de iniciar el vuelo
+    # Mark traveller as in-transit before starting the flight
     state.mark_in_transit(state.current_airport, destination, aircraft)
     return state
 
@@ -211,6 +281,25 @@ def complete_dynamic_flight(
     rules: Dict[str, float],
     state: DynamicState,
 ) -> DynamicState:
+    """
+    Complete an in-progress flight (Phase 2 of the two-phase protocol).
+
+    Called after the frontend animation finishes. Applies the flight
+    cost and time, updates distance trackers, moves the traveller to
+    the destination, resets stay counters, and clears the transit state.
+
+    Args:
+        graph: The airline route graph.
+        aircraft_cfg: Aircraft configuration dictionary.
+        rules: System rules dict.
+        state: Current dynamic session state (mutated in-place).
+
+    Returns:
+        Updated DynamicState after the flight is completed.
+
+    Raises:
+        DynamicPlanError: If the traveller is not currently in transit.
+    """
     if not state.in_transit:
         raise DynamicPlanError("El viajero no está en tránsito")
 
@@ -255,7 +344,6 @@ def complete_dynamic_flight(
     state.stay_min = 0.0
     state.required_stay_min = float(route.min_stay_min)
 
-    # Limpiar estado de tránsito al completar el vuelo
     state.clear_transit()
 
     return state

@@ -127,6 +127,7 @@ class Graph:
         return list(self._airports.values())
 
     def get_all_routes(self) -> List[Route]:
+        """Get a flat list of all routes (edges) in the graph."""
         routes: List[Route] = []
         for route_list in self._adjacency.values():
             routes.extend(route_list)

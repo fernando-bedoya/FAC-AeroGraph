@@ -1,3 +1,10 @@
+"""
+Dynamic planning package for SkyRoute Planner.
+
+Exports all public functions and the DynamicPlanError exception used
+by the interactive dynamic planning system (Requirement 2.3 and 2.4).
+"""
+
 from .activities import choose_dynamic_activities, list_dynamic_activities
 from .core import DynamicPlanError
 from .flights import (

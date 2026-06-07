@@ -1,3 +1,11 @@
+"""
+Temporary work management for dynamic planning (Requirement 2.3.b).
+
+Travellers can take on temporary jobs at airports when their budget falls
+below the eligibility threshold. Income is earned per hour worked, and
+both time and mandatory events are tracked during work periods.
+"""
+
 from typing import Dict, List
 
 from ..graph import Graph
@@ -11,6 +19,21 @@ def list_dynamic_jobs(
     rules: Dict[str, float],
     state: DynamicState,
 ) -> List[Dict[str, float]]:
+    """
+    List available temporary jobs at the traveller's current airport.
+
+    Jobs are only returned when the traveller's budget is below the
+    work eligibility threshold (default: 35% of initial budget).
+
+    Args:
+        graph: The airline route graph.
+        rules: System rules dict with budget_trigger_percent.
+        state: Current dynamic session state.
+
+    Returns:
+        List of dicts with keys: name, hourly_rate, max_hours.
+        Empty list if no jobs or budget is above threshold.
+    """
     airport = graph.get_airport(state.current_airport)
     if not airport:
         return []
@@ -35,6 +58,28 @@ def perform_dynamic_work(
     job_name: str,
     hours: int,
 ) -> DynamicState:
+    """
+    Perform a temporary work assignment at the current airport.
+
+    Validates budget eligibility, job existence, and hour limits.
+    Advances time without monetary cost, then credits the traveller's
+    budget by hourly_rate * hours. Mandatory food/lodging events are
+    applied for the work duration.
+
+    Args:
+        graph: The airline route graph.
+        rules: System rules dict.
+        state: Current dynamic session state (mutated in-place).
+        job_name: Name of the job to perform.
+        hours: Number of hours to work (must be <= job.max_hours).
+
+    Returns:
+        Updated DynamicState with income credited and time deducted.
+
+    Raises:
+        DynamicPlanError: If budget is not low enough, job not found,
+            or hours exceed the maximum allowed.
+    """
     airport = graph.get_airport(state.current_airport)
     if not airport:
         raise DynamicPlanError("Aeropuerto actual no existe")

@@ -1,3 +1,10 @@
+"""
+Session lifecycle management for dynamic planning (Requirement 2.3).
+
+Provides functions to create, retrieve, and terminate interactive dynamic
+planning sessions. Each session is stored in-memory keyed by a UUID.
+"""
+
 import uuid
 from typing import Dict
 
@@ -17,13 +24,34 @@ def start_dynamic_session(
     total_time_hours: float,
     sessions: Dict[str, DynamicState],
 ) -> DynamicState:
+    """
+    Create and initialise a new dynamic planning session.
+
+    Validates the origin airport, generates a unique session UUID,
+    calculates the optimal suggested route via backtracking, and
+    initialises a DynamicState with full budget and time resources.
+
+    Args:
+        graph: The airline route graph.
+        aircraft_cfg: Aircraft configuration dictionary keyed by type name.
+        rules: System rules (intervals, budget trigger, etc.).
+        origin: Departure airport IATA code.
+        initial_budget: Starting budget in USD.
+        total_time_hours: Total available time in hours.
+        sessions: In-memory dict of active sessions (mutated in-place).
+
+    Returns:
+        The newly created DynamicState instance.
+
+    Raises:
+        DynamicPlanError: If the origin airport does not exist.
+    """
     if not graph.get_airport(origin):
         raise DynamicPlanError("Aeropuerto de origen no existe")
 
     session_id = str(uuid.uuid4())
     total_time_min = total_time_hours * 60
 
-    # Calcular la ruta sugerida
     suggested_route = calculate_suggested_route(
         graph=graph,
         aircraft_cfg=aircraft_cfg,
@@ -56,10 +84,30 @@ def start_dynamic_session(
 
 
 def end_dynamic_session(session_id: str, sessions: Dict[str, DynamicState]) -> None:
+    """
+    Terminate and remove a dynamic planning session.
+
+    Args:
+        session_id: UUID of the session to remove.
+        sessions: In-memory dict of active sessions (mutated in-place).
+    """
     sessions.pop(session_id, None)
 
 
 def get_dynamic_state(session_id: str, sessions: Dict[str, DynamicState]) -> DynamicState:
+    """
+    Retrieve the current state of a dynamic planning session.
+
+    Args:
+        session_id: UUID of the session.
+        sessions: In-memory dict of active sessions.
+
+    Returns:
+        The DynamicState for the given session.
+
+    Raises:
+        DynamicPlanError: If the session ID is not found.
+    """
     state = sessions.get(session_id)
     if not state:
         raise DynamicPlanError("Sesion dinamica no encontrada")
