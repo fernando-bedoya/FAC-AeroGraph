@@ -301,7 +301,7 @@ def complete_dynamic_flight(
         DynamicPlanError: If the traveller is not currently in transit.
     """
     if not state.in_transit:
-        raise DynamicPlanError("El viajero no está en tránsito")
+        raise DynamicPlanError("Traveler is not in transit")
 
     origin = state.transit_from
     destination = state.transit_to

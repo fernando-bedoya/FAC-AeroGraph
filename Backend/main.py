@@ -23,12 +23,16 @@ def create_app() -> FastAPI:
         description="Graph-based flight route planning and dynamic simulation"
     )
     
-    # Middleware para deshabilitar cache en desarrollo
+    # Middleware to disable browser cache during development
+    # WHY: When developing, we want to see the latest changes without
+    # the browser serving old cached versions of JS, HTML, and CSS files
     @app.middleware("http")
     async def add_no_cache_headers(request, call_next):
+        # Process the request first, then modify the response
         response = await call_next(request)
         path = request.url.path
-        # Deshabilitar cache para archivos JS, HTML y CSS
+        # Disable cache for JS, HTML, and CSS files only
+        # WHY: These are the files that change most often during development
         if path.endswith(('.js', '.html', '.css')):
             response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
             response.headers['Pragma'] = 'no-cache'

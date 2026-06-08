@@ -1,15 +1,43 @@
-// --- Helpers ---
+/**
+ * UI Rendering Module
+ * 
+ * Handles all UI rendering functions for panels and modals.
+ * Converts data from backend into HTML for display.
+ * 
+ * Sections:
+ * - Formatting helpers (cost, time)
+ * - Airport info panel
+ * - Route cards and segments
+ * - Dynamic planning panel (state, activities, jobs, flights, steps)
+ * - Report modal
+ * - Warning modals (subsidy limit, insufficient requirements)
+ */
 
+// =============================================================================
+// FORMATTING HELPERS
+// =============================================================================
+
+/** Format number as USD currency */
 function fmtCost(n) { return `$${n.toFixed(2)}`; }
+
+/** Format minutes as hours with decimal */
 function fmtTime(min) { return (min / 60).toFixed(1) + "h"; }
+
+/** Format minutes as "Xh Ymin" */
 function fmtMin(m) {
   const h = Math.floor(m / 60);
   const min = Math.round(m % 60);
   return h > 0 ? `${h}h ${min}min` : `${min}min`;
 }
 
-// --- Panel de aeropuerto ---
+// =============================================================================
+// AIRPORT INFO PANEL
+// =============================================================================
 
+/**
+ * Display airport information in the details panel.
+ * @param {Object} airport - Airport data object
+ */
 export function showAirportInfo(airport) {
   const el = document.getElementById("airportInfo");
   const aircraft = airport.aircraftTypes?.length > 0 ? airport.aircraftTypes.join(", ") : "Sin rutas salientes";
@@ -27,8 +55,16 @@ export function showAirportInfo(airport) {
     </div>`;
 }
 
-// --- Panel de rutas ---
+// =============================================================================
+// ROUTE CARDS AND SEGMENTS
+// =============================================================================
 
+/**
+ * Render a single route segment with details.
+ * @param {Object} seg - Segment data
+ * @param {number} idx - Segment index
+ * @param {Array} segments - All segments (for accumulated cost)
+ */
 function renderSegment(seg, idx, segments) {
   const accCost = segments.slice(0, idx + 1).reduce((s, x) => s + x.segment_cost, 0);
   return `
@@ -48,6 +84,11 @@ function renderSegment(seg, idx, segments) {
     </div>`;
 }
 
+/**
+ * Render a complete route card with title, stats, and segments.
+ * @param {Object} plan - Route plan data
+ * @param {string} title - Card title
+ */
 function renderRouteCard(plan, title) {
   if (!plan || !plan.segments) return "";
   const segments = plan.segments.map((s, i) => renderSegment(s, i, plan.segments)).join("");
@@ -78,12 +119,21 @@ function renderRouteCard(plan, title) {
     </div>`;
 }
 
+/**
+ * Display basic plans (budget and time optimized routes).
+ * @param {Object} budgetPlan - Budget-optimized route
+ * @param {Object} timePlan - Time-optimized route
+ */
 export function showBasicPlans(budgetPlan, timePlan) {
   document.getElementById("routesContainer").innerHTML =
     renderRouteCard(budgetPlan, "Mayor destinos sin exceder presupuesto") +
     renderRouteCard(timePlan, "Mayor destinos en menor tiempo");
 }
 
+/**
+ * Display suggested route for dynamic planning.
+ * @param {Object} suggestedRoute - Suggested route data
+ */
 export function showSuggestedRoute(suggestedRoute) {
   const el = document.getElementById("routesContainer");
   if (!suggestedRoute || !suggestedRoute.airports || suggestedRoute.airports.length <= 1) return;
@@ -126,6 +176,12 @@ export function showSuggestedRoute(suggestedRoute) {
     </div>`;
 }
 
+/**
+ * Display optimized routes by criteria.
+ * @param {Object} allRoutes - Routes by criterion
+ * @param {string} origin - Origin airport code
+ * @param {Array} criteria - Selected criteria
+ */
 export function showOptimizedRoutes(allRoutes, origin, criteria) {
   const el = document.getElementById("routesContainer");
   const labels = { distancia: "Optima por Distancia", tiempo: "Optima por Tiempo", costo: "Optima por Costo" };
@@ -146,6 +202,12 @@ export function showOptimizedRoutes(allRoutes, origin, criteria) {
   el.innerHTML = html || '<div class="empty-routes">No hay rutas alcanzables</div>';
 }
 
+/**
+ * Display message when no route exists with selected transport.
+ * @param {string} origin - Origin airport code
+ * @param {string} destination - Destination airport code
+ * @param {Array} aircraft - Selected aircraft types
+ */
 export function showNoTransport(origin, destination, aircraft) {
   document.getElementById("routesContainer").innerHTML = `
     <div class="empty-routes">
@@ -161,16 +223,24 @@ export function showNoTransport(origin, destination, aircraft) {
     </div>`;
 }
 
+/** Display a message in the routes container */
 export function showRouteMessage(msg) {
   document.getElementById("routesContainer").innerHTML = `<div class="empty-routes">${msg}</div>`;
 }
 
+/** Display an error in the routes container */
 export function showRouteError(msg) {
   document.getElementById("routesContainer").innerHTML = `<div class="empty-routes">${msg}</div>`;
 }
 
-// --- Panel dinámico ---
+// =============================================================================
+// DYNAMIC PLANNING PANEL
+// =============================================================================
 
+/**
+ * Display current session state.
+ * @param {Object} state - Session state object
+ */
 export function showDynamicState(state) {
   const el = document.getElementById("dynamicState");
   if (!el || !state) return;
@@ -183,6 +253,10 @@ export function showDynamicState(state) {
     <div class="dynamic-state-row"><strong>Visitados:</strong> ${state.visited_airports.length}</div>`;
 }
 
+/**
+ * Display available activities.
+ * @param {Array} activities - List of activities
+ */
 export function showActivities(activities) {
   const el = document.getElementById("dynamicActivities");
   if (!el) return;
@@ -203,6 +277,10 @@ export function showActivities(activities) {
   }).join("");
 }
 
+/**
+ * Display available jobs.
+ * @param {Array} jobs - List of jobs
+ */
 export function showJobs(jobs) {
   const el = document.getElementById("dynamicJobs");
   if (!el) return;
@@ -218,6 +296,10 @@ export function showJobs(jobs) {
     </label>`).join("");
 }
 
+/**
+ * Display available flight options.
+ * @param {Array} options - List of flight options
+ */
 export function showFlights(options) {
   const el = document.getElementById("dynamicFlights");
   if (!el) return;
@@ -226,6 +308,7 @@ export function showFlights(options) {
     return;
   }
 
+  // Group by destination
   const grouped = {};
   options.forEach((o) => {
     if (!grouped[o.destination]) grouped[o.destination] = [];
@@ -248,6 +331,10 @@ export function showFlights(options) {
     </div>`).join("");
 }
 
+/**
+ * Display action history (steps).
+ * @param {Array} steps - List of steps
+ */
 export function showSteps(steps) {
   const el = document.getElementById("dynamicSteps");
   if (!el) return;
@@ -263,6 +350,7 @@ export function showSteps(steps) {
     </div>`).join("");
 }
 
+/** Clear all dynamic panel content */
 export function clearDynamicPanel() {
   document.getElementById("dynamicState").textContent = "Inicia una sesion para ver el estado.";
   document.getElementById("dynamicActivities").innerHTML = "";
@@ -271,21 +359,31 @@ export function clearDynamicPanel() {
   document.getElementById("dynamicSteps").innerHTML = "";
 }
 
-// --- Debug ---
+// =============================================================================
+// DEBUG PANEL
+// =============================================================================
 
+/** Display debug data as JSON */
 export function showDebug(data) {
   const el = document.getElementById("output");
   if (!el) return;
   el.textContent = typeof data === "string" ? data : JSON.stringify(data, null, 2);
 }
 
+/** Display debug message */
 export function showDebugMessage(msg) {
   const el = document.getElementById("output");
   if (el) el.textContent = msg;
 }
 
-// --- Reporte modal ---
+// =============================================================================
+// REPORT MODAL
+// =============================================================================
 
+/**
+ * Display final trip report in modal.
+ * @param {Object} report - Report data from backend
+ */
 export function showReportModal(report) {
   const modal = document.getElementById("report-modal");
   const content = document.getElementById("report-modal-content");
@@ -358,8 +456,14 @@ export function showReportModal(report) {
   modal.classList.add("active");
 }
 
-// --- Selectores de aeropuerto ---
+// =============================================================================
+// AIRPORT SELECTORS
+// =============================================================================
 
+/**
+ * Populate airport dropdown selectors.
+ * @param {Array} airports - List of airports
+ */
 export function fillAirportSelectors(airports) {
   const selectors = ["origin", "destination", "originBasic", "originDynamic"];
   selectors.forEach((id) => {
@@ -381,8 +485,15 @@ export function fillAirportSelectors(airports) {
   }
 }
 
-// --- Modal de Ruta Subsidiada (Límite 20%) ---
+// =============================================================================
+// WARNING MODALS
+// =============================================================================
 
+/**
+ * Display subsidized route limit warning modal.
+ * @param {Object} currentState - Current session state
+ * @param {number} flightDistance - Requested flight distance
+ */
 export function showSubsidyModal(currentState, flightDistance) {
   const modal = document.getElementById("subsidy-modal");
   if (!modal) return;
@@ -409,6 +520,11 @@ export function showSubsidyModal(currentState, flightDistance) {
   modal.classList.add("active");
 }
 
+/**
+ * Display alert modal with custom title and message.
+ * @param {string} title - Modal title
+ * @param {string} message - Alert message
+ */
 export function showAlertModal(title, message) {
   const modal = document.getElementById("alert-modal");
   if (!modal) return;
@@ -416,5 +532,3 @@ export function showAlertModal(title, message) {
   document.getElementById("alert-modal-message").textContent = message;
   modal.classList.add("active");
 }
-
-

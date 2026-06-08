@@ -1,5 +1,5 @@
 /**
- * SkyRoute Planner - Main Application Entry Point
+ * FAC AeroGraph - Main Application Entry Point
  * 
  * This is the main JavaScript module that coordinates all frontend functionality.
  * It handles user interactions, updates the UI, and communicates with the backend API.
@@ -39,7 +39,7 @@ async function handleLoadGraph() {
   try {
     ui.showRouteMessage("Abriendo explorador de archivos...");
 
-    // Se envia peticion sin file_path para que el backend abra el explorador nativo
+    // Send request without file_path so backend opens native explorer
     const data = await sim.loadGraph(null);
 
     ui.fillAirportSelectors(data.airports);
@@ -182,7 +182,7 @@ async function handleBlockRoute(blocked) {
   if (!origin || !destination) { ui.showRouteError("Ingresa origen y destino"); return; }
 
   try {
-    // Si hay sesión activa y estamos bloqueando, manejar interrupción
+    // If there's an active session and we're blocking, handle interruption
     if (sim.hasSession() && blocked) {
       if (currentFlight && currentFlight.origin === origin && currentFlight.destination === destination) {
         flightInterrupted = true;
@@ -222,7 +222,7 @@ async function handleBlockRoute(blocked) {
   }
 }
 
-// --- Sesión dinámica ---
+// --- Dynamic Session ---
 
 async function handleDynamicStart() {
   if (!sim.isGraphLoaded()) { ui.showRouteError("Primero carga un JSON"); return; }
@@ -254,7 +254,7 @@ async function handleDynamicFinish() {
   try {
     await sim.finishSession();
     graph.resetHighlights();
-    graph.clearTraveledRoutes(); // Limpiar rutas y aeropuertos marcados
+    graph.clearTraveledRoutes(); // Clear marked routes and airports
     ui.clearDynamicPanel();
   } catch (err) {
     ui.showRouteError(err.message);
@@ -285,7 +285,7 @@ async function handleDynamicWork() {
       return;
     }
 
-    // Validar tiempo restante insuficiente
+    // Validate insufficient remaining time
     const state = sim.getState();
     const durationMin = hours * 60;
     if (state && state.time_left_min < durationMin) {
@@ -299,8 +299,8 @@ async function handleDynamicWork() {
     ui.showDebug(newState);
   } catch (err) {
     const msg = err.message.replace("API Error: ", "");
-    if (msg.toLowerCase().includes("horas") || msg.toLowerCase().includes("exceden") || msg.toLowerCase().includes("tiempo") || msg.toLowerCase().includes("suficiente")) {
-      ui.showAlertModal("⚠️ Error de Validación", msg);
+    if (msg.toLowerCase().includes("hours") || msg.toLowerCase().includes("exceed") || msg.toLowerCase().includes("time") || msg.toLowerCase().includes("sufficient")) {
+      ui.showAlertModal("⚠️ Validation Error", msg);
     } else {
       ui.showRouteError(msg);
     }
@@ -322,13 +322,13 @@ async function handleDynamicFly() {
     const time = parseFloat(selected.dataset.time);
     const state = sim.getState();
 
-    // 1. Validar tiempo insuficiente antes de iniciar la simulación del vuelo
+    // 1. Validate insufficient time before starting flight simulation
     if (state && state.time_left_min < time) {
       ui.showAlertModal("⚠️ Tiempo Insuficiente", "No tienes suficiente tiempo restante para realizar este vuelo.");
       return;
     }
 
-    // 2. Validar presupuesto insuficiente antes de iniciar el vuelo
+    // 2. Validate insufficient budget before starting flight
     if (state && state.budget_usd < cost) {
       ui.showAlertModal("⚠️ Presupuesto Insuficiente", "No tienes suficiente presupuesto para realizar este vuelo.");
       return;
@@ -343,15 +343,15 @@ async function handleDynamicFly() {
       }
     }
 
-    // Marcar en tránsito
+    // Mark as in transit
     const startResult = await sim.flyStart(destination, aircraft);
     await refreshDynamicUI(startResult);
 
-    // Duración de la animación
+    // Animation duration
     const flightMin = startResult.estimated_time_min || 10;
     const animDuration = (flightMin * 100) + 5000;
 
-    // Animar vuelo
+    // Animate flight
     flightInterrupted = false;
     currentFlight = { origin: currentOrigin, destination };
 
@@ -363,7 +363,7 @@ async function handleDynamicFly() {
     if (!flightInterrupted) {
       const finalResult = await sim.flyArrive();
       
-      // Marcar la ruta como recorrida (persistente aunque se rote el globo)
+      // Mark route as traveled (persistent even when rotating globe)
       graph.markRouteAsTraveled(currentOrigin, destination);
       
       await refreshDynamicUI(finalResult);
@@ -373,7 +373,7 @@ async function handleDynamicFly() {
     }
   } catch (err) {
     const msg = err.message.replace("API Error: ", "");
-    if (msg.toLowerCase().includes("presupuesto") || msg.toLowerCase().includes("tiempo") || msg.toLowerCase().includes("insuficiente")) {
+    if (msg.toLowerCase().includes("budget") || msg.toLowerCase().includes("time") || msg.toLowerCase().includes("insufficient")) {
       ui.showAlertModal("⚠️ Requisitos Insuficientes", msg);
     } else {
       ui.showRouteError(msg);
@@ -383,7 +383,7 @@ async function handleDynamicFly() {
         const refreshed = await sim.refreshState();
         await refreshDynamicUI(refreshed);
       }
-    } catch (e) { /* continuar */ }
+    } catch (e) { /* continue */ }
   }
 }
 
@@ -430,7 +430,7 @@ function highlightSession(state) {
   }
 }
 
-// --- Inicialización ---
+// --- Initialization ---
 
 document.addEventListener("DOMContentLoaded", () => {
   // Event listeners
@@ -448,7 +448,7 @@ document.addEventListener("DOMContentLoaded", () => {
   $("btnDynamicFly").addEventListener("click", handleDynamicFly);
   $("btnGenerateReport").addEventListener("click", handleGenerateReport);
 
-  // Modal de reporte
+  // Report modal
   $("report-modal-close").addEventListener("click", () => {
     $("report-modal").classList.remove("active");
   });
@@ -456,7 +456,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (e.target === e.currentTarget) e.currentTarget.classList.remove("active");
   });
 
-  // Modal de advertencia de ruta subsidiada (Límite 20%)
+  // Subsidized route warning modal (20% Limit)
   $("subsidy-modal-close").addEventListener("click", () => {
     $("subsidy-modal").classList.remove("active");
   });
@@ -467,7 +467,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (e.target === e.currentTarget) e.currentTarget.classList.remove("active");
   });
 
-  // Modal de advertencia de requisitos (Presupuesto/Tiempo)
+  // Requirements warning modal (Budget/Time)
   $("alert-modal-close").addEventListener("click", () => {
     $("alert-modal").classList.remove("active");
   });
@@ -478,7 +478,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (e.target === e.currentTarget) e.currentTarget.classList.remove("active");
   });
 
-  // Exportar reporte
+  // Export report
   $("report-export-btn").addEventListener("click", () => {
     if (!sim.hasSession()) return;
     const format = $("report-export-format").value;
@@ -486,7 +486,7 @@ document.addEventListener("DOMContentLoaded", () => {
     window.location.href = url;
   });
 
-  // Redimensionamiento
+  // Window resize
   window.addEventListener("resize", () => {
     if (sim.isGraphLoaded()) {
       const data = sim.getGraphData();
@@ -494,7 +494,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  // Estado inicial
+  // Initial state
   document.getElementById("airportInfo").textContent = "Selecciona un aeropuerto para ver informacion.";
   ui.showRouteMessage("Selecciona un plan y presiona calcular");
   ui.clearDynamicPanel();

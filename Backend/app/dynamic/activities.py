@@ -88,7 +88,7 @@ def choose_dynamic_activities(
     """
     airport = graph.get_airport(state.current_airport)
     if not airport:
-        raise DynamicPlanError("Aeropuerto actual no existe")
+        raise DynamicPlanError("Current airport does not exist")
 
     if not activity_names:
         return state
@@ -97,7 +97,7 @@ def choose_dynamic_activities(
     for name in activity_names:
         activity = activity_map.get(name)
         if not activity:
-            raise DynamicPlanError(f"Actividad no encontrada: {name}")
+            raise DynamicPlanError(f"Activity not found: {name}")
 
         apply_cost_and_time(
             state,

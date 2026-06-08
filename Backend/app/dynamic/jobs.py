@@ -82,20 +82,20 @@ def perform_dynamic_work(
     """
     airport = graph.get_airport(state.current_airport)
     if not airport:
-        raise DynamicPlanError("Aeropuerto actual no existe")
+        raise DynamicPlanError("Current airport does not exist")
 
     if not can_work(state, rules):
-        raise DynamicPlanError("Presupuesto suficiente, no se habilita trabajo")
+        raise DynamicPlanError("Budget sufficient, work not enabled")
 
     job_map = {job.name: job for job in airport.jobs}
     job = job_map.get(job_name)
     if not job:
-        raise DynamicPlanError("Trabajo no encontrado")
+        raise DynamicPlanError("Job not found")
 
     if hours <= 0:
-        raise DynamicPlanError("Horas invalidas")
+        raise DynamicPlanError("Invalid hours")
     if hours > job.max_hours:
-        raise DynamicPlanError("Horas exceden el maximo permitido")
+        raise DynamicPlanError("Hours exceed maximum allowed")
 
     duration_min = hours * 60
     time_left_after_work, mandatory_events = apply_time_only(

@@ -19,7 +19,10 @@
  * - Animation: requestAnimationFrame for smooth 60fps rendering
  */
 
-// Globe configuration constants
+// =============================================================================
+// GLOBE CONFIGURATION
+// =============================================================================
+
 const GLOBE_CONFIG = {
   WORLD_DATA_URL: "https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json",
   OCEAN_COLOR: "#1a4d6e",
@@ -44,7 +47,11 @@ const COLORS = {
   LABEL: "#f5f0e8",      // Light text color
 };
 
-// Estado del módulo
+// =============================================================================
+// MODULE STATE
+// =============================================================================
+
+// SVG and D3 elements
 let svg = null;
 let projection = null;
 let pathGenerator = null;
@@ -55,23 +62,32 @@ let planeElement = null;
 let worldData = null;
 let currentGraphData = null;
 let onNodeClickCallback = null;
-let rotation = [-70, -15]; // Centrado en Latinoamérica
+
+// Globe rotation (centered on Latin America)
+let rotation = [-70, -15];
 let isDragging = false;
 let dragStart = null;
 let glowFilter = null;
 
-// Rutas y nodos recorridos en planificación dinámica (persistentes)
-let traveledRoutes = new Set(); // Formato: "ORIGIN-DESTINATION"
-let visitedAirports = new Set(); // Formato: "AIRPORT_ID"
+// Traveled routes and visited airports for dynamic planning (persistent)
+let traveledRoutes = new Set(); // Format: "ORIGIN-DESTINATION"
+let visitedAirports = new Set(); // Format: "AIRPORT_ID"
 
-// Animación de vuelo
+// Flight animation state
 let animationFrameId = null;
 let flightStartTime = null;
 let flightDurationMs = 0;
 let flightPath = null;
 let onFlightCompleteCallback = null;
 
-// Cargar datos del mundo
+// =============================================================================
+// WORLD DATA LOADING
+// =============================================================================
+
+/**
+ * Load world boundaries from TopoJSON CDN.
+ * Cached after first load to avoid repeated fetches.
+ */
 async function loadWorldData() {
   if (worldData) return worldData;
   try {
@@ -80,12 +96,14 @@ async function loadWorldData() {
     worldData = topojson.feature(world, world.objects.countries);
     return worldData;
   } catch (error) {
-    console.error("Error cargando datos del mundo:", error);
+    console.error("Error loading world data:", error);
     return null;
   }
 }
 
-// --- Animación de vuelo ---
+// =============================================================================
+// FLIGHT ANIMATION
+// =============================================================================
 
 /**
  * Calculate the bearing (heading) between two points on a great circle.
@@ -110,6 +128,10 @@ function calculateBearing(start, end) {
   return (bearing + 360) % 360;
 }
 
+/**
+ * Animation loop for flight.
+ * Called by requestAnimationFrame for smooth 60fps rendering.
+ */
 function flightLoop(timestamp) {
   if (!flightStartTime) flightStartTime = timestamp;
 
@@ -142,18 +164,26 @@ function flightLoop(timestamp) {
   }
 }
 
-// Interpolación a lo largo de un gran círculo (great circle)
+/**
+ * Calculate point on great circle between two coordinates.
+ * Uses spherical linear interpolation (slerp).
+ * 
+ * @param {Array} start - [longitude, latitude] of start point
+ * @param {Array} end - [longitude, latitude] of end point
+ * @param {number} t - Interpolation factor (0 to 1)
+ * @returns {Array} [longitude, latitude] of interpolated point
+ */
 function getPointOnGreatCircle(start, end, t) {
   const [lon1, lat1] = start;
   const [lon2, lat2] = end;
 
-  // Convertir a radianes
+  // Convert to radians
   const phi1 = (lat1 * Math.PI) / 180;
   const lambda1 = (lon1 * Math.PI) / 180;
   const phi2 = (lat2 * Math.PI) / 180;
   const lambda2 = (lon2 * Math.PI) / 180;
 
-  // Calcular distancia angular
+  // Calculate angular distance
   const d = 2 * Math.asin(
     Math.sqrt(
       Math.pow(Math.sin((phi2 - phi1) / 2), 2) +
@@ -163,7 +193,7 @@ function getPointOnGreatCircle(start, end, t) {
 
   if (d === 0) return start;
 
-  // Interpolación a lo largo del gran círculo
+  // Spherical linear interpolation
   const a = Math.sin((1 - t) * d) / Math.sin(d);
   const b = Math.sin(t * d) / Math.sin(d);
 
@@ -177,6 +207,15 @@ function getPointOnGreatCircle(start, end, t) {
   return [lon, lat];
 }
 
+/**
+ * Start flight animation from origin to destination.
+ * Returns a Promise that resolves when animation completes.
+ * 
+ * @param {string} originId - Origin airport IATA code
+ * @param {string} destinationId - Destination airport IATA code
+ * @param {number} durationMs - Animation duration in milliseconds
+ * @returns {Promise} Resolves when animation completes
+ */
 export function fly(originId, destinationId, durationMs) {
   return new Promise((resolve) => {
     if (!currentGraphData || !projection) {
@@ -215,6 +254,10 @@ export function fly(originId, destinationId, durationMs) {
   });
 }
 
+/**
+ * Stop flight animation immediately.
+ * Calls completion callback if one exists.
+ */
 export function stopFlight() {
   cancelAnimationFrame(animationFrameId);
   if (planeElement) planeElement.style("display", "none");
@@ -225,22 +268,27 @@ export function stopFlight() {
   }
 }
 
+/** Pause flight animation (can be resumed) */
 export function pauseFlight() {
   cancelAnimationFrame(animationFrameId);
 }
 
+/** Resume paused flight animation */
 export function resumeFlight() {
   if (flightPath) {
     animationFrameId = requestAnimationFrame(flightLoop);
   }
 }
 
-// --- Renderizado del globo ---
+// =============================================================================
+// GLOBE RENDERING
+// =============================================================================
 
+/** Draw the globe with ocean, countries, and graticule */
 function drawGlobe() {
   if (!globeGroup || !pathGenerator) return;
 
-  // Océano con gradiente
+  // Ocean with gradient
   globeGroup.selectAll(".ocean").remove();
   globeGroup.append("path")
     .datum({ type: "Sphere" })
@@ -250,7 +298,7 @@ function drawGlobe() {
     .attr("stroke", GLOBE_CONFIG.GLOBE_EDGE)
     .attr("stroke-width", 2);
 
-  // Países
+  // Countries
   if (worldData) {
     globeGroup.selectAll(".country").remove();
     globeGroup.selectAll(".country")
@@ -263,7 +311,7 @@ function drawGlobe() {
       .attr("stroke-width", 0.5);
   }
 
-  // Grilla (meridianos y paralelos)
+  // Graticule (meridians and parallels)
   globeGroup.selectAll(".graticule").remove();
   const graticule = d3.geoGraticule10();
   globeGroup.append("path")
@@ -275,11 +323,13 @@ function drawGlobe() {
     .attr("stroke-width", 0.5);
 }
 
+/** Draw airport nodes on the globe */
 function drawNodes() {
   if (!nodesGroup || !currentGraphData || !projection) return;
 
   nodesGroup.selectAll("*").remove();
 
+  // Only show airports visible on current view
   const visibleAirports = currentGraphData.airports.filter((a) => {
     return isPointVisible([a.lon, a.lat]);
   });
@@ -297,13 +347,13 @@ function drawNodes() {
       if (onNodeClickCallback) onNodeClickCallback(d);
     });
 
-  // Determinar color del nodo basado en si fue visitado
+  // Determine node color based on visited status
   const getNodeColor = (d) => {
-    if (visitedAirports.has(d.id)) return COLORS.ARC_TRAVELED; // Azul para visitados
+    if (visitedAirports.has(d.id)) return COLORS.ARC_TRAVELED; // Blue for visited
     return d.isHub ? COLORS.HUB : COLORS.NODE;
   };
 
-  // Halo exterior con glow
+  // Outer halo with glow effect
   nodes.append("circle")
     .attr("r", (d) => {
       const baseRadius = d.isHub ? GLOBE_CONFIG.NODE_HUB_RADIUS : GLOBE_CONFIG.NODE_REGULAR_RADIUS;
@@ -315,7 +365,7 @@ function drawNodes() {
     .attr("stroke-opacity", 0.4)
     .attr("filter", "url(#glow)");
 
-  // Círculo principal
+  // Main circle
   nodes.append("circle")
     .attr("class", "node-circle")
     .attr("id", (d) => `node-${d.id}`)
@@ -328,7 +378,7 @@ function drawNodes() {
     .attr("stroke-width", 2)
     .attr("filter", "url(#glow)");
 
-  // Etiquetas
+  // Labels
   nodes.append("text")
     .attr("class", "node-label")
     .attr("dy", -14)
@@ -342,6 +392,7 @@ function drawNodes() {
     .text((d) => d.id);
 }
 
+/** Draw route arcs on the globe */
 function drawArcs() {
   if (!arcsGroup || !currentGraphData || !projection) return;
 
@@ -359,11 +410,11 @@ function drawArcs() {
     .sort((a, b) => (a.blocked ? 1 : 0) - (b.blocked ? 1 : 0));
 
   routes.forEach((route) => {
-    // Verificar si esta ruta ha sido recorrida
+    // Check if this route has been traveled
     const routeKey = `${route.origin}-${route.destination}`;
     const isTraveled = traveledRoutes.has(routeKey);
 
-    // Generar puntos a lo largo del gran círculo
+    // Generate points along the great circle
     const arcPoints = [];
     for (let i = 0; i <= GLOBE_CONFIG.ARC_SEGMENTS; i++) {
       const t = i / GLOBE_CONFIG.ARC_SEGMENTS;
@@ -371,12 +422,12 @@ function drawArcs() {
       arcPoints.push(point);
     }
 
-    // Filtrar puntos visibles
+    // Filter visible points
     const visiblePoints = arcPoints.filter((p) => isPointVisible(p));
 
     if (visiblePoints.length < 2) return;
 
-    // Dibujar el arco
+    // Draw the arc
     const lineGenerator = d3.line()
       .x((p) => {
         const proj = projection(p);
@@ -389,7 +440,7 @@ function drawArcs() {
       .defined((p) => isPointVisible(p))
       .curve(d3.curveLinear);
 
-    // Determinar color basado en estado de la ruta
+    // Determine color based on route status
     let arcColor = COLORS.ARC;
     let arcWidth = 1.8;
     let arcShadowWidth = 2.5;
@@ -404,7 +455,7 @@ function drawArcs() {
       arcShadowWidth = 5;
     }
 
-    // Sombra del arco
+    // Arc shadow
     arcsGroup.append("path")
       .datum(visiblePoints)
       .attr("class", "arc-shadow")
@@ -416,7 +467,7 @@ function drawArcs() {
       .attr("stroke-opacity", 0.3)
       .attr("filter", "url(#glow)");
 
-    // Arco principal
+    // Main arc
     arcsGroup.append("path")
       .datum(visiblePoints)
       .attr("class", "arc")
@@ -429,7 +480,7 @@ function drawArcs() {
       .attr("stroke-opacity", 0.9)
       .attr("stroke-linecap", "round");
 
-    // Etiqueta de distancia en el punto medio
+    // Distance label at midpoint
     const midPoint = arcPoints[Math.floor(arcPoints.length / 2)];
     if (isPointVisible(midPoint)) {
       const midProjected = projection(midPoint);
@@ -450,6 +501,10 @@ function drawArcs() {
   });
 }
 
+/**
+ * Check if a coordinate is visible on the current globe view.
+ * Points on the back side of the globe are not visible.
+ */
 function isPointVisible(coord) {
   const rotated = projection.rotate();
   const center = [-rotated[0], -rotated[1]];
@@ -457,6 +512,7 @@ function isPointVisible(coord) {
   return distance < Math.PI / 2;
 }
 
+/** Update the entire globe view */
 function updateView() {
   if (!projection) return;
   projection.rotate(rotation);
@@ -465,10 +521,11 @@ function updateView() {
   drawArcs();
 }
 
+/** Create SVG filters for glow effects and gradients */
 function createFilters(svg) {
   const defs = svg.append("defs");
 
-  // Gradiente del océano
+  // Ocean gradient
   const oceanGradient = defs.append("radialGradient")
     .attr("id", "ocean-gradient")
     .attr("cx", "30%")
@@ -479,11 +536,11 @@ function createFilters(svg) {
     .attr("offset", "0%")
     .attr("stop-color", "#2a6a8e");
 
-    oceanGradient.append("stop")
+  oceanGradient.append("stop")
     .attr("offset", "100%")
     .attr("stop-color", "#0d3d5a");
 
-  // Filtro de glow
+  // Glow filter
   const glowFilter = defs.append("filter")
     .attr("id", "glow")
     .attr("x", "-50%")
@@ -500,6 +557,13 @@ function createFilters(svg) {
   feMerge.append("feMergeNode").attr("in", "SourceGraphic");
 }
 
+/**
+ * Render the complete globe with airports and routes.
+ * Sets up SVG, projection, and interactivity.
+ * 
+ * @param {Object} graphData - Graph data with airports and routes
+ * @param {Function} onNodeClick - Callback when airport node is clicked
+ */
 export async function renderGraph(graphData, onNodeClick) {
   const container = document.querySelector("#graph");
   const width = container.clientWidth || 800;
@@ -508,7 +572,7 @@ export async function renderGraph(graphData, onNodeClick) {
   currentGraphData = graphData;
   onNodeClickCallback = onNodeClick;
 
-  // Cargar datos del mundo si no están cargados
+  // Load world data if not already loaded
   if (!worldData) {
     await loadWorldData();
   }
@@ -520,10 +584,10 @@ export async function renderGraph(graphData, onNodeClick) {
     .attr("width", width)
     .attr("height", height);
 
-  // Crear filtros
+  // Create filters
   createFilters(svg);
 
-  // Proyección ortográfica (globo)
+  // Orthographic projection (globe)
   projection = d3.geoOrthographic()
     .scale(Math.min(width, height) / 2.3)
     .translate([width / 2, height / 2])
@@ -532,17 +596,17 @@ export async function renderGraph(graphData, onNodeClick) {
 
   pathGenerator = d3.geoPath().projection(projection);
 
-  // Grupos
+  // Groups for layering
   globeGroup = svg.append("g").attr("class", "globe");
   arcsGroup = svg.append("g").attr("class", "arcs");
   nodesGroup = svg.append("g").attr("class", "nodes");
 
-  // Avión (icono SVG tipo Flightradar24)
+  // Airplane icon (SVG path similar to Flightradar24)
   planeElement = svg.append("g")
     .attr("class", "plane-icon")
     .style("display", "none");
   
-  // Path de avión apuntando hacia arriba (norte)
+  // Plane path pointing up (north)
   planeElement.append("path")
     .attr("d", "M0,-10 L2,-6 L8,-2 L8,0 L2,-1 L2,4 L4,6 L4,8 L0,7 L-4,8 L-4,6 L-2,4 L-2,-1 L-8,0 L-8,-2 L-2,-6 Z")
     .attr("fill", COLORS.PLANE)
@@ -550,7 +614,7 @@ export async function renderGraph(graphData, onNodeClick) {
     .attr("stroke-width", 0.8)
     .style("filter", "url(#glow)");
 
-  // Interactividad - arrastrar para rotar
+  // Interactivity - drag to rotate
   svg.call(d3.drag()
     .on("start", (event) => {
       isDragging = true;
@@ -585,8 +649,11 @@ export async function renderGraph(graphData, onNodeClick) {
   updateView();
 }
 
-// --- Highlights ---
+// =============================================================================
+// HIGHLIGHTS
+// =============================================================================
 
+/** Highlight an airport node */
 export function highlightNode(nodeId) {
   if (!svg) return;
   svg.select(`#node-${nodeId}`)
@@ -597,6 +664,7 @@ export function highlightNode(nodeId) {
     .attr("stroke-width", 3);
 }
 
+/** Highlight a route arc */
 export function highlightEdge(originId, destId) {
   if (!svg) return;
   svg.select(`#arc-${originId}-${destId}`)
@@ -606,6 +674,7 @@ export function highlightEdge(originId, destId) {
     .attr("stroke-opacity", 1);
 }
 
+/** Reset all highlights to default state */
 export function resetHighlights() {
   if (!svg || !currentGraphData) return;
 
@@ -674,28 +743,30 @@ export function resetHighlights() {
     .attr("stroke-opacity", 0.9);
 }
 
-// --- Rutas persistentes para planificación dinámica ---
+// =============================================================================
+// TRAVELED ROUTES (Dynamic Planning)
+// =============================================================================
 
 /**
- * Marca una ruta como recorrida (se mantiene aunque se rote el globo)
- * @param {string} originId - ID del aeropuerto de origen
- * @param {string} destinationId - ID del aeropuerto de destino
+ * Mark a route as traveled (persists even when rotating globe).
+ * @param {string} originId - Origin airport IATA code
+ * @param {string} destinationId - Destination airport IATA code
  */
 export function markRouteAsTraveled(originId, destinationId) {
   const routeKey = `${originId}-${destinationId}`;
   traveledRoutes.add(routeKey);
   
-  // También marcar los aeropuertos como visitados
+  // Also mark airports as visited
   visitedAirports.add(originId);
   visitedAirports.add(destinationId);
   
-  // Redibujar para aplicar los cambios
+  // Redraw to apply changes
   updateView();
 }
 
 /**
- * Marca un aeropuerto como visitado
- * @param {string} airportId - ID del aeropuerto
+ * Mark an airport as visited.
+ * @param {string} airportId - Airport IATA code
  */
 export function markAirportAsVisited(airportId) {
   visitedAirports.add(airportId);
@@ -703,8 +774,8 @@ export function markAirportAsVisited(airportId) {
 }
 
 /**
- * Limpia todas las rutas y aeropuertos marcados como recorridos
- * Se usa al finalizar una sesión de planificación dinámica
+ * Clear all traveled routes and visited airports.
+ * Called when ending a dynamic planning session.
  */
 export function clearTraveledRoutes() {
   traveledRoutes.clear();
@@ -713,15 +784,16 @@ export function clearTraveledRoutes() {
 }
 
 /**
- * Verifica si una ruta ha sido recorrida
- * @param {string} originId - ID del aeropuerto de origen
- * @param {string} destinationId - ID del aeropuerto de destino
+ * Check if a route has been traveled.
+ * @param {string} originId - Origin airport IATA code
+ * @param {string} destinationId - Destination airport IATA code
  * @returns {boolean}
  */
 export function isRouteTraveled(originId, destinationId) {
   return traveledRoutes.has(`${originId}-${destinationId}`);
 }
 
+/** Get SVG element reference */
 export function getSvg() {
   return svg;
 }

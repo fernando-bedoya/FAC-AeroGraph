@@ -47,7 +47,7 @@ def start_dynamic_session(
         DynamicPlanError: If the origin airport does not exist.
     """
     if not graph.get_airport(origin):
-        raise DynamicPlanError("Aeropuerto de origen no existe")
+        raise DynamicPlanError("Origin airport does not exist")
 
     session_id = str(uuid.uuid4())
     total_time_min = total_time_hours * 60
@@ -110,5 +110,5 @@ def get_dynamic_state(session_id: str, sessions: Dict[str, DynamicState]) -> Dyn
     """
     state = sessions.get(session_id)
     if not state:
-        raise DynamicPlanError("Sesion dinamica no encontrada")
+        raise DynamicPlanError("Dynamic session not found")
     return state

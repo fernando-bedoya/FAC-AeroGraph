@@ -222,7 +222,7 @@ def handle_interruption(
     route_blocked = _block_route(graph, origin, destination)
     if not route_blocked:
         raise ValueError(
-            f"No se encontró la ruta {origin}→{destination} para bloquear."
+            f"Route {origin}→{destination} not found for blocking."
         )
 
     was_redirected = False
