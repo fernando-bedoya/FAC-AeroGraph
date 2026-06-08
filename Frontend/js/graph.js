@@ -39,6 +39,7 @@ const COLORS = {
   ARC: "#f59e0b",        // Amber for routes
   ARC_BLOCKED: "#dc2626", // Red for blocked routes
   ARC_HIGHLIGHT: "#10b981", // Green for highlighted routes
+  ARC_TRAVELED: "#3b82f6", // Blue for traveled routes in dynamic planning
   PLANE: "#fbbf24",      // Yellow for airplane
   LABEL: "#f5f0e8",      // Light text color
 };
@@ -58,6 +59,10 @@ let rotation = [-70, -15]; // Centrado en Latinoamérica
 let isDragging = false;
 let dragStart = null;
 let glowFilter = null;
+
+// Rutas y nodos recorridos en planificación dinámica (persistentes)
+let traveledRoutes = new Set(); // Formato: "ORIGIN-DESTINATION"
+let visitedAirports = new Set(); // Formato: "AIRPORT_ID"
 
 // Animación de vuelo
 let animationFrameId = null;
@@ -292,11 +297,20 @@ function drawNodes() {
       if (onNodeClickCallback) onNodeClickCallback(d);
     });
 
+  // Determinar color del nodo basado en si fue visitado
+  const getNodeColor = (d) => {
+    if (visitedAirports.has(d.id)) return COLORS.ARC_TRAVELED; // Azul para visitados
+    return d.isHub ? COLORS.HUB : COLORS.NODE;
+  };
+
   // Halo exterior con glow
   nodes.append("circle")
-    .attr("r", (d) => (d.isHub ? GLOBE_CONFIG.NODE_HUB_RADIUS + 4 : GLOBE_CONFIG.NODE_REGULAR_RADIUS + 3))
+    .attr("r", (d) => {
+      const baseRadius = d.isHub ? GLOBE_CONFIG.NODE_HUB_RADIUS : GLOBE_CONFIG.NODE_REGULAR_RADIUS;
+      return visitedAirports.has(d.id) ? baseRadius + 5 : baseRadius + 3;
+    })
     .attr("fill", "none")
-    .attr("stroke", (d) => (d.isHub ? COLORS.HUB : COLORS.NODE))
+    .attr("stroke", (d) => getNodeColor(d))
     .attr("stroke-width", 1.5)
     .attr("stroke-opacity", 0.4)
     .attr("filter", "url(#glow)");
@@ -305,8 +319,11 @@ function drawNodes() {
   nodes.append("circle")
     .attr("class", "node-circle")
     .attr("id", (d) => `node-${d.id}`)
-    .attr("r", (d) => (d.isHub ? GLOBE_CONFIG.NODE_HUB_RADIUS : GLOBE_CONFIG.NODE_REGULAR_RADIUS))
-    .attr("fill", (d) => (d.isHub ? COLORS.HUB : COLORS.NODE))
+    .attr("r", (d) => {
+      const baseRadius = d.isHub ? GLOBE_CONFIG.NODE_HUB_RADIUS : GLOBE_CONFIG.NODE_REGULAR_RADIUS;
+      return visitedAirports.has(d.id) ? baseRadius + 2 : baseRadius;
+    })
+    .attr("fill", (d) => getNodeColor(d))
     .attr("stroke", "#fff")
     .attr("stroke-width", 2)
     .attr("filter", "url(#glow)");
@@ -342,6 +359,10 @@ function drawArcs() {
     .sort((a, b) => (a.blocked ? 1 : 0) - (b.blocked ? 1 : 0));
 
   routes.forEach((route) => {
+    // Verificar si esta ruta ha sido recorrida
+    const routeKey = `${route.origin}-${route.destination}`;
+    const isTraveled = traveledRoutes.has(routeKey);
+
     // Generar puntos a lo largo del gran círculo
     const arcPoints = [];
     for (let i = 0; i <= GLOBE_CONFIG.ARC_SEGMENTS; i++) {
@@ -368,6 +389,21 @@ function drawArcs() {
       .defined((p) => isPointVisible(p))
       .curve(d3.curveLinear);
 
+    // Determinar color basado en estado de la ruta
+    let arcColor = COLORS.ARC;
+    let arcWidth = 1.8;
+    let arcShadowWidth = 2.5;
+    
+    if (route.blocked) {
+      arcColor = COLORS.ARC_BLOCKED;
+      arcWidth = 2.5;
+      arcShadowWidth = 4;
+    } else if (isTraveled) {
+      arcColor = COLORS.ARC_TRAVELED;
+      arcWidth = 3.5;
+      arcShadowWidth = 5;
+    }
+
     // Sombra del arco
     arcsGroup.append("path")
       .datum(visiblePoints)
@@ -375,8 +411,8 @@ function drawArcs() {
       .attr("id", `arc-shadow-${route.origin}-${route.destination}`)
       .attr("d", lineGenerator)
       .attr("fill", "none")
-      .attr("stroke", route.blocked ? COLORS.ARC_BLOCKED : COLORS.ARC)
-      .attr("stroke-width", route.blocked ? 4 : 2.5)
+      .attr("stroke", arcColor)
+      .attr("stroke-width", arcShadowWidth)
       .attr("stroke-opacity", 0.3)
       .attr("filter", "url(#glow)");
 
@@ -387,8 +423,8 @@ function drawArcs() {
       .attr("id", `arc-${route.origin}-${route.destination}`)
       .attr("d", lineGenerator)
       .attr("fill", "none")
-      .attr("stroke", route.blocked ? COLORS.ARC_BLOCKED : COLORS.ARC)
-      .attr("stroke-width", route.blocked ? 2.5 : 1.8)
+      .attr("stroke", arcColor)
+      .attr("stroke-width", arcWidth)
       .attr("stroke-dasharray", route.blocked ? "6,4" : "none")
       .attr("stroke-opacity", 0.9)
       .attr("stroke-linecap", "round");
@@ -575,8 +611,14 @@ export function resetHighlights() {
 
   svg.selectAll(".node-circle")
     .transition().duration(500)
-    .attr("r", (d) => (d.isHub ? GLOBE_CONFIG.NODE_HUB_RADIUS : GLOBE_CONFIG.NODE_REGULAR_RADIUS))
-    .attr("fill", (d) => (d.isHub ? COLORS.HUB : COLORS.NODE))
+    .attr("r", (d) => {
+      const baseRadius = d.isHub ? GLOBE_CONFIG.NODE_HUB_RADIUS : GLOBE_CONFIG.NODE_REGULAR_RADIUS;
+      return visitedAirports.has(d.id) ? baseRadius + 2 : baseRadius;
+    })
+    .attr("fill", (d) => {
+      if (visitedAirports.has(d.id)) return COLORS.ARC_TRAVELED;
+      return d.isHub ? COLORS.HUB : COLORS.NODE;
+    })
     .attr("stroke", "#fff")
     .attr("stroke-width", 2);
 
@@ -586,6 +628,8 @@ export function resetHighlights() {
       const id = d3.select(this).attr("id");
       if (!id) return COLORS.ARC;
       const parts = id.replace("arc-shadow-", "").split("-");
+      const routeKey = `${parts[0]}-${parts[1]}`;
+      if (traveledRoutes.has(routeKey)) return COLORS.ARC_TRAVELED;
       const route = currentGraphData.routes.find(r => r.origin === parts[0] && r.destination === parts[1]);
       return route?.blocked ? COLORS.ARC_BLOCKED : COLORS.ARC;
     })
@@ -593,6 +637,8 @@ export function resetHighlights() {
       const id = d3.select(this).attr("id");
       if (!id) return 2.5;
       const parts = id.replace("arc-shadow-", "").split("-");
+      const routeKey = `${parts[0]}-${parts[1]}`;
+      if (traveledRoutes.has(routeKey)) return 5;
       const route = currentGraphData.routes.find(r => r.origin === parts[0] && r.destination === parts[1]);
       return route?.blocked ? 4 : 2.5;
     })
@@ -604,6 +650,8 @@ export function resetHighlights() {
       const id = d3.select(this).attr("id");
       if (!id) return COLORS.ARC;
       const parts = id.replace("arc-", "").split("-");
+      const routeKey = `${parts[0]}-${parts[1]}`;
+      if (traveledRoutes.has(routeKey)) return COLORS.ARC_TRAVELED;
       const route = currentGraphData.routes.find(r => r.origin === parts[0] && r.destination === parts[1]);
       return route?.blocked ? COLORS.ARC_BLOCKED : COLORS.ARC;
     })
@@ -611,6 +659,8 @@ export function resetHighlights() {
       const id = d3.select(this).attr("id");
       if (!id) return 1.8;
       const parts = id.replace("arc-", "").split("-");
+      const routeKey = `${parts[0]}-${parts[1]}`;
+      if (traveledRoutes.has(routeKey)) return 3.5;
       const route = currentGraphData.routes.find(r => r.origin === parts[0] && r.destination === parts[1]);
       return route?.blocked ? 2.5 : 1.8;
     })
@@ -622,6 +672,54 @@ export function resetHighlights() {
       return route?.blocked ? "6,4" : "none";
     })
     .attr("stroke-opacity", 0.9);
+}
+
+// --- Rutas persistentes para planificación dinámica ---
+
+/**
+ * Marca una ruta como recorrida (se mantiene aunque se rote el globo)
+ * @param {string} originId - ID del aeropuerto de origen
+ * @param {string} destinationId - ID del aeropuerto de destino
+ */
+export function markRouteAsTraveled(originId, destinationId) {
+  const routeKey = `${originId}-${destinationId}`;
+  traveledRoutes.add(routeKey);
+  
+  // También marcar los aeropuertos como visitados
+  visitedAirports.add(originId);
+  visitedAirports.add(destinationId);
+  
+  // Redibujar para aplicar los cambios
+  updateView();
+}
+
+/**
+ * Marca un aeropuerto como visitado
+ * @param {string} airportId - ID del aeropuerto
+ */
+export function markAirportAsVisited(airportId) {
+  visitedAirports.add(airportId);
+  updateView();
+}
+
+/**
+ * Limpia todas las rutas y aeropuertos marcados como recorridos
+ * Se usa al finalizar una sesión de planificación dinámica
+ */
+export function clearTraveledRoutes() {
+  traveledRoutes.clear();
+  visitedAirports.clear();
+  updateView();
+}
+
+/**
+ * Verifica si una ruta ha sido recorrida
+ * @param {string} originId - ID del aeropuerto de origen
+ * @param {string} destinationId - ID del aeropuerto de destino
+ * @returns {boolean}
+ */
+export function isRouteTraveled(originId, destinationId) {
+  return traveledRoutes.has(`${originId}-${destinationId}`);
 }
 
 export function getSvg() {

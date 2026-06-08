@@ -254,6 +254,7 @@ async function handleDynamicFinish() {
   try {
     await sim.finishSession();
     graph.resetHighlights();
+    graph.clearTraveledRoutes(); // Limpiar rutas y aeropuertos marcados
     ui.clearDynamicPanel();
   } catch (err) {
     ui.showRouteError(err.message);
@@ -361,6 +362,10 @@ async function handleDynamicFly() {
 
     if (!flightInterrupted) {
       const finalResult = await sim.flyArrive();
+      
+      // Marcar la ruta como recorrida (persistente aunque se rote el globo)
+      graph.markRouteAsTraveled(currentOrigin, destination);
+      
       await refreshDynamicUI(finalResult);
       ui.showDebug(finalResult);
       ui.showRouteMessage(`Vuelo completado a ${destination}`);
