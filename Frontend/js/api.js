@@ -23,7 +23,7 @@ async function get(endpoint) {
 }
 
 // Grafo
-export const loadGraph = (filePath) => post("/load", { file_path: filePath });
+export const loadGraph = (filePath) => post("/load", filePath ? { file_path: filePath } : {});
 export const getGraph = () => get("/graph");
 export const blockRoute = (origin, destination, blocked) =>
   post("/route/block", { origin, destination, blocked });

@@ -1,3 +1,5 @@
+import platform
+import subprocess
 from pathlib import Path
 
 from fastapi import APIRouter, HTTPException
@@ -174,9 +176,99 @@ def health_check():
     return {"status": "ok"}
 
 
+def _open_file_dialog() -> str:
+    """
+    Abre el explorador de archivos nativo del sistema para seleccionar un archivo .json.
+
+    Detecta el sistema operativo y usa la herramienta nativa correspondiente:
+    - Linux: zenity (herramienta GTK para dialogos de sistema)
+    - Windows: PowerShell con OpenFileDialog (dialogo nativo de Windows)
+    - macOS: osascript con AppleScript (dialogo nativo de macOS)
+
+    Returns:
+        str: Ruta absoluta del archivo seleccionado.
+
+    Raises:
+        HTTPException: Si el usuario cancela la seleccion o no hay herramienta disponible.
+    """
+    sistema = platform.system()
+
+    if sistema == "Linux":
+        # zenity: herramienta nativa de GTK para dialogos en Linux
+        # --file-selection: abre el explorador de archivos
+        # --file-filter: filtra solo archivos .json
+        resultado = subprocess.run(
+            ["zenity", "--file-selection", "--title=Seleccionar archivo JSON", "--file-filter=Archivos JSON | *.json"],
+            capture_output=True,
+            text=True,
+        )
+        # Si el usuario cancela, zenity devuelve codigo de salida 1
+        if resultado.returncode != 0:
+            raise HTTPException(status_code=400, detail="Seleccion de archivo cancelada")
+        return resultado.stdout.strip()
+
+    elif sistema == "Windows":
+        # PowerShell: shell nativo de Windows
+        # Crea un dialogo OpenFileDialog con filtro para archivos .json
+        script = (
+            "Add-Type -AssemblyName System.Windows.Forms; "
+            "$dialog = New-Object System.Windows.Forms.OpenFileDialog; "
+            "$dialog.Filter = 'Archivos JSON (*.json)|*.json'; "
+            "$dialog.Title = 'Seleccionar archivo JSON'; "
+            "if ($dialog.ShowDialog() -eq 'OK') { Write-Output $dialog.FileName }"
+        )
+        resultado = subprocess.run(
+            ["powershell", "-Command", script],
+            capture_output=True,
+            text=True,
+        )
+        if resultado.returncode != 0 or not resultado.stdout.strip():
+            raise HTTPException(status_code=400, detail="Seleccion de archivo cancelada")
+        return resultado.stdout.strip()
+
+    elif sistema == "Darwin":
+        # macOS: osascript ejecuta AppleScript
+        # 'choose file' abre el explorador nativo de macOS
+        # 'of type "json"' filtra archivos .json
+        script = 'choose file of type "json" with prompt "Seleccionar archivo JSON"'
+        resultado = subprocess.run(
+            ["osascript", "-e", script],
+            capture_output=True,
+            text=True,
+        )
+        if resultado.returncode != 0:
+            raise HTTPException(status_code=400, detail="Seleccion de archivo cancelada")
+        # AppleScript devuelve la ruta con formato "alias Macintosh HD:path:to:file.json"
+        # Hay que convertirlo a ruta POSIX (/path/to/file.json)
+        ruta_alias = resultado.stdout.strip()
+        conversion = subprocess.run(
+            ["osascript", "-e", f'POSIX path of "{ruta_alias}"'],
+            capture_output=True,
+            text=True,
+        )
+        return conversion.stdout.strip()
+
+    else:
+        raise HTTPException(status_code=500, detail=f"Sistema operativo no soportado: {sistema}")
+
+
 @router.post("/load")
 def load_graph(payload: LoadJsonRequest):
-    file_path = Path(payload.file_path)
+    """
+    Carga un grafo desde un archivo JSON.
+
+    Si se proporciona file_path, usa esa ruta directamente.
+    Si NO se proporciona file_path, abre el explorador de archivos nativo
+    del sistema (zenity en Linux, PowerShell en Windows, osascript en macOS)
+    para que el usuario seleccione el archivo .json manualmente.
+    """
+    # Si no se proporciona ruta, abrir el explorador de archivos nativo
+    if not payload.file_path:
+        file_path_str = _open_file_dialog()
+    else:
+        file_path_str = payload.file_path
+
+    file_path = Path(file_path_str)
     if not file_path.is_absolute():
         base = Path(__file__).resolve().parents[1]
         file_path = (base / file_path).resolve()

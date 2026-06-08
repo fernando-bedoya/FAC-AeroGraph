@@ -37,10 +37,11 @@ let flightInterrupted = false;
  */
 async function handleLoadGraph() {
   try {
-    const filePath = $("jsonPath").value.trim();
-    if (!filePath) { ui.showRouteError("Ingresa una ruta valida"); return; }
+    ui.showRouteMessage("Abriendo explorador de archivos...");
 
-    const data = await sim.loadGraph(filePath);
+    // Se envia peticion sin file_path para que el backend abra el explorador nativo
+    const data = await sim.loadGraph(null);
+
     ui.fillAirportSelectors(data.airports);
     graph.renderGraph(data, handleAirportClick);
     ui.showRouteMessage("Red cargada correctamente");

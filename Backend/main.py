@@ -10,6 +10,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
+from starlette.middleware.base import BaseHTTPMiddleware
 
 from app.api import router
 
@@ -21,6 +22,18 @@ def create_app() -> FastAPI:
         version="1.0.0",
         description="Graph-based flight route planning and dynamic simulation"
     )
+    
+    # Middleware para deshabilitar cache en desarrollo
+    @app.middleware("http")
+    async def add_no_cache_headers(request, call_next):
+        response = await call_next(request)
+        path = request.url.path
+        # Deshabilitar cache para archivos JS, HTML y CSS
+        if path.endswith(('.js', '.html', '.css')):
+            response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+            response.headers['Pragma'] = 'no-cache'
+            response.headers['Expires'] = '0'
+        return response
     
     # CORS middleware
     app.add_middleware(

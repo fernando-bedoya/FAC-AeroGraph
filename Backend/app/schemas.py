@@ -5,14 +5,14 @@ Defines the JSON body models for all REST endpoints, including
 dynamic planning requests for Requirement 2.3.
 """
 
-from typing import List
+from typing import List, Optional
 
 from pydantic import BaseModel, Field
 
 
 class LoadJsonRequest(BaseModel):
     """Request body for loading a JSON graph file."""
-    file_path: str = Field(..., description="Ruta absoluta o relativa del JSON")
+    file_path: Optional[str] = Field(None, description="Ruta absoluta o relativa del JSON. Si no se envia, se abre el explorador de archivos nativo.")
 
 
 class BasicPlanRequest(BaseModel):
